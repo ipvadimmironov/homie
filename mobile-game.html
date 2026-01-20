@@ -848,7 +848,7 @@
       let bigCells = null; // flat array of span cells (row-major: y from top (N) to bottom (-N))
       let lastPlayerPos = null;
 
-      let soundEnabled = false;
+      let soundEnabled = true;
       let triedAutoPlay = false;
 
       // Reduce interference from in-app browser gestures (Telegram / iOS back/close).
@@ -1145,6 +1145,9 @@
         running = true;
 
         renderAll();
+        // Try to start music immediately (may be blocked by autoplay policies).
+        triedAutoPlay = false;
+        tryStartMusic();
       }
 
       // Gesture can start anywhere on screen
@@ -1221,6 +1224,10 @@
 
       // Enable gesture lock by default (this page is a game; no scrolling UI).
       lockGestures(true);
+
+      // Best-effort autoplay attempt right away.
+      // If blocked, it will start on first user gesture (pointerdown) automatically.
+      tryStartMusic();
     </script>
   </body>
 </html>
