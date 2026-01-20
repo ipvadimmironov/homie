@@ -186,6 +186,58 @@
         line-height: 1;
         margin: 6px 0 10px;
         filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.55));
+        opacity: 0;
+        transform: translateY(6px) scale(0.96);
+      }
+      .modal .big-emoji.win-pop {
+        animation: emojiPop 520ms ease-out forwards;
+      }
+      @keyframes emojiPop {
+        0% {
+          opacity: 0;
+          transform: translateY(10px) scale(0.92);
+        }
+        60% {
+          opacity: 1;
+          transform: translateY(0px) scale(1.02);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0px) scale(1);
+        }
+      }
+
+      .confetti-layer {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10001;
+        overflow: hidden;
+        display: none;
+      }
+      .confetti-layer.show {
+        display: block;
+      }
+      .confetti {
+        position: absolute;
+        top: -12vh;
+        left: 0;
+        width: var(--w, 10px);
+        height: var(--h, 18px);
+        border-radius: 999px;
+        background: hsl(var(--hue, 180) 90% 60%);
+        opacity: 0.95;
+        transform: translate3d(var(--x, 50vw), 0, 0) rotate(var(--r, 0deg));
+        animation: confettiFall var(--dur, 1400ms) ease-in forwards;
+        filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.28));
+      }
+      @keyframes confettiFall {
+        0% {
+          transform: translate3d(var(--x, 50vw), -10vh, 0) rotate(var(--r, 0deg));
+        }
+        100% {
+          transform: translate3d(calc(var(--x, 50vw) + var(--drift, 0px)), 110vh, 0) rotate(calc(var(--r, 0deg) + 720deg));
+        }
       }
       .modal h2 {
         margin: 0 0 8px;
@@ -270,6 +322,8 @@
 
     <audio id="bgAudio" src="chipi.mp3" preload="auto" loop></audio>
     <button id="soundBtn" class="sound-btn" aria-label="Звук">🔇</button>
+
+    <div class="confetti-layer" id="confettiLayer"></div>
 
     <div class="overlay" id="overlay">
       <div class="modal">
@@ -814,6 +868,7 @@
         balloonLayer: document.getElementById("balloonLayer"),
         bgAudio: document.getElementById("bgAudio"),
         soundBtn: document.getElementById("soundBtn"),
+        confettiLayer: document.getElementById("confettiLayer"),
         overlay: document.getElementById("overlay"),
         modalTitle: document.getElementById("modalTitle"),
         modalEmoji: document.getElementById("modalEmoji"),
@@ -888,8 +943,49 @@
       function showModal(title, text, emoji) {
         els.modalTitle.textContent = title;
         els.modalText.textContent = text;
-        if (emoji) els.modalEmoji.textContent = emoji;
+        if (emoji) {
+          els.modalEmoji.style.display = "";
+          els.modalEmoji.textContent = emoji;
+          // restart animation
+          els.modalEmoji.classList.remove("win-pop");
+          void els.modalEmoji.offsetWidth;
+          els.modalEmoji.classList.add("win-pop");
+        } else {
+          els.modalEmoji.style.display = "none";
+          els.modalEmoji.classList.remove("win-pop");
+        }
         els.overlay.classList.add("show");
+      }
+
+      function clearConfetti() {
+        els.confettiLayer.classList.remove("show");
+        els.confettiLayer.replaceChildren();
+      }
+
+      function launchConfetti() {
+        clearConfetti();
+        els.confettiLayer.classList.add("show");
+        const n = 70;
+        for (let i = 0; i < n; i++) {
+          const p = document.createElement("div");
+          p.className = "confetti";
+          const hue = Math.floor(Math.random() * 360);
+          const x = Math.floor(Math.random() * 100);
+          const w = 6 + Math.floor(Math.random() * 8);
+          const h = 12 + Math.floor(Math.random() * 18);
+          const r = Math.floor(Math.random() * 360);
+          const drift = -60 + Math.floor(Math.random() * 120);
+          const dur = 1100 + Math.floor(Math.random() * 900);
+          p.style.setProperty("--hue", String(hue));
+          p.style.setProperty("--x", `${x}vw`);
+          p.style.setProperty("--w", `${w}px`);
+          p.style.setProperty("--h", `${h}px`);
+          p.style.setProperty("--r", `${r}deg`);
+          p.style.setProperty("--drift", `${drift}px`);
+          p.style.setProperty("--dur", `${dur}ms`);
+          els.confettiLayer.appendChild(p);
+        }
+        setTimeout(clearConfetti, 1900);
       }
 
       // modalClose handler is set near the end to restart the game
@@ -1019,8 +1115,12 @@
         }
         if (winner === "player") {
           showModal("Вы победили!", `Вы нашли сокровище за ${player.moves} ходов.`, treasureEmoji);
+          // confetti after emoji appears
+          setTimeout(() => {
+            if (els.overlay.classList.contains("show")) launchConfetti();
+          }, 520);
         } else {
-          showModal("Поражение", `Два хомяка нашли сокровище раньше вас.\nВаши ходы: ${player.moves}`, treasureEmoji);
+          showModal("Поражение", `Два хомяка нашли сокровище раньше вас.\nВаши ходы: ${player.moves}`, null);
         }
       }
 
@@ -1155,6 +1255,7 @@
 
       function restart() {
         els.overlay.classList.remove("show");
+        clearConfetti();
         start();
       }
 
