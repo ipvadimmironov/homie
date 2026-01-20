@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Homie — визуальные прогоны 3 сценариев</title>
+    <style>
+      :root {
+        --bg: #0b0f17;
+        --panel: #121a27;
+        --panel2: #0f1622;
+        --text: #e7eefc;
+        --muted: #aab7d6;
+        --border: rgba(255, 255, 255, 0.12);
+        --accent: #7dd3fc;
+        --danger: #fb7185;
+
+        --cell: 20px;
+        --cell-font: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(1200px 800px at 20% 0%, #132036 0%, var(--bg) 60%);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Segoe UI Emoji",
+          "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      }
+
+      .wrap {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 18px;
+        margin: 0 0 12px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+
+      .top {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .panel {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .grid-form {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 10px;
+        align-items: end;
+      }
+
+      .field {
+        grid-column: span 3;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .field.wide {
+        grid-column: span 6;
+      }
+
+      label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      input[type="number"],
+      input[type="text"],
+      select,
+      input[type="range"] {
+        width: 100%;
+      }
+
+      input[type="number"],
+      input[type="text"],
+      select {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 10px;
+        outline: none;
+      }
+
+      input[type="number"]:focus,
+      input[type="text"]:focus,
+      select:focus {
+        border-color: rgba(125, 211, 252, 0.6);
+        box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.12);
+      }
+
+      .btns {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      button {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.05s ease, background 0.2s ease;
+      }
+      button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+      button.primary {
+        border-color: rgba(125, 211, 252, 0.4);
+        background: rgba(125, 211, 252, 0.15);
+      }
+      button.danger {
+        border-color: rgba(251, 113, 133, 0.45);
+        background: rgba(251, 113, 133, 0.12);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .range-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+      .range-val {
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+        font-size: 12px;
+        min-width: 92px;
+        text-align: right;
+      }
+
+      .scenarios {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .scenario-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .scenario-head .title {
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .scenario-head .meta {
+        font-size: 12px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .emoji-grid {
+        display: grid;
+        gap: 2px;
+        background: rgba(0, 0, 0, 0.12);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px;
+        overflow: auto;
+      }
+
+      .cell {
+        width: var(--cell);
+        height: var(--cell);
+        display: grid;
+        place-items: center;
+        font-size: var(--cell-font);
+        line-height: 1;
+        user-select: none;
+      }
+
+      .log {
+        margin-top: 10px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.12);
+        padding: 10px;
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+        min-height: 58px;
+        white-space: pre-wrap;
+      }
+
+      .results {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      th {
+        background: rgba(255, 255, 255, 0.05);
+        text-align: left;
+        color: var(--muted);
+        font-weight: 800;
+      }
+
+      td strong {
+        color: var(--text);
+      }
+
+      .note {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      @media (max-width: 1100px) {
+        .top {
+          grid-template-columns: 1fr;
+        }
+        .scenarios {
+          grid-template-columns: 1fr;
+        }
+        .grid-form {
+          grid-template-columns: repeat(6, 1fr);
+        }
+        .field {
+          grid-column: span 3;
+        }
+        .field.wide {
+          grid-column: span 6;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Homie — визуальные прогоны трёх сценариев поиска 👸 в поле [-N..N]×[-N..N]</h1>
+
+      <div class="top">
+        <div class="panel">
+          <h2>Параметры</h2>
+          <div class="grid-form">
+            <div class="field">
+              <label for="nInput">Размер поля N (полуразмер)</label>
+              <input id="nInput" type="number" min="2" max="40" step="1" value="6" />
+            </div>
+
+            <div class="field">
+              <label for="runsInput">Количество находок принцессы</label>
+              <input id="runsInput" type="number" min="1" max="500" step="1" value="20" />
+            </div>
+
+            <div class="field">
+              <label for="vInput">Скорость копания V (клеток/тик)</label>
+              <input id="vInput" type="number" min="1" max="50" step="1" value="1" />
+            </div>
+
+            <div class="field wide">
+              <label for="delayInput">Скорость визуализации (задержка)</label>
+              <div class="range-row">
+                <input id="delayInput" type="range" min="0" max="250" step="5" value="35" />
+                <div class="range-val" id="delayVal">35 ms/тик</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="seedInput">Seed (опционально)</label>
+              <input id="seedInput" type="text" placeholder="например 123" />
+            </div>
+
+            <div class="field">
+              <label for="princessMode">Принцесса</label>
+              <select id="princessMode">
+                <option value="random" selected>Случайно каждый прогон</option>
+                <option value="fixed">Фиксировано (xp, yp)</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="xpInput">xp</label>
+              <input id="xpInput" type="number" min="-40" max="40" step="1" value="6" />
+            </div>
+
+            <div class="field">
+              <label for="ypInput">yp</label>
+              <input id="ypInput" type="number" min="-40" max="40" step="1" value="-3" />
+            </div>
+
+            <div class="field wide">
+              <div class="btns">
+                <button id="resetBtn">Reset</button>
+                <button id="stopBtn" class="danger" disabled>Stop</button>
+                <button id="startBtn" class="primary">Start</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Итоги</h2>
+          <div class="results">
+            <div class="note">
+              Эмодзи: <span class="pill">⬜ земля</span> <span class="pill">🟫 туннель</span>
+              <span class="pill">🐹 хомяк</span> <span class="pill">👸 принцесса</span>
+              <br />
+              Время считается в “условных единицах”: копание = 1/V за клетку, ходьба по туннелю = 1/(10V).
+            </div>
+
+            <div class="pill" id="runPill">Находка: 0 / 0</div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Сценарий</th>
+                  <th>Текущий прогон</th>
+                  <th>Среднее (по завершённым)</th>
+                  <th>Завершено</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>1</strong> — длинные лучи до стенки + возврат</td>
+                  <td id="t1Now">—</td>
+                  <td id="t1Avg">—</td>
+                  <td id="t1Done">0</td>
+                </tr>
+                <tr>
+                  <td><strong>2</strong> — случайные вылазки длиной lgN + возврат</td>
+                  <td id="t2Now">—</td>
+                  <td id="t2Avg">—</td>
+                  <td id="t2Done">0</td>
+                </tr>
+                <tr>
+                  <td><strong>3</strong> — 3 ветки + переключения + рестарт каждые 30</td>
+                  <td id="t3Now">—</td>
+                  <td id="t3Avg">—</td>
+                  <td id="t3Done">0</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="note" id="princessNote">Принцесса: —</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scenarios">
+        <div class="panel">
+          <div class="scenario-head">
+            <div class="title">Сценарий 1</div>
+            <div class="meta" id="meta1">—</div>
+          </div>
+          <div class="emoji-grid" id="grid1"></div>
+          <div class="log" id="log1"></div>
+        </div>
+
+        <div class="panel">
+          <div class="scenario-head">
+            <div class="title">Сценарий 2</div>
+            <div class="meta" id="meta2">—</div>
+          </div>
+          <div class="emoji-grid" id="grid2"></div>
+          <div class="log" id="log2"></div>
+        </div>
+
+        <div class="panel">
+          <div class="scenario-head">
+            <div class="title">Сценарий 3</div>
+            <div class="meta" id="meta3">—</div>
+          </div>
+          <div class="emoji-grid" id="grid3"></div>
+          <div class="log" id="log3"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ---------- utils ----------
+      function clampInt(v, min, max) {
+        const n = Number.parseInt(String(v), 10);
+        if (Number.isNaN(n)) return min;
+        return Math.max(min, Math.min(max, n));
+      }
+
+      function mulberry32(seed) {
+        // deterministic PRNG
+        let t = seed >>> 0;
+        return function () {
+          t += 0x6d2b79f5;
+          let x = Math.imul(t ^ (t >>> 15), 1 | t);
+          x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
+          return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function hashStringToSeed(s) {
+        let h = 2166136261;
+        for (let i = 0; i < s.length; i++) {
+          h ^= s.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      }
+
+      function pick(rng, arr) {
+        return arr[Math.floor(rng() * arr.length)];
+      }
+
+      function formatTime(t) {
+        if (!Number.isFinite(t)) return "—";
+        if (t < 1000) return t.toFixed(2);
+        return t.toFixed(0);
+      }
+
+      const DIRS8 = [
+        { dx: 1, dy: 0, name: "→" },
+        { dx: -1, dy: 0, name: "←" },
+        { dx: 0, dy: 1, name: "↑" },
+        { dx: 0, dy: -1, name: "↓" },
+        { dx: 1, dy: 1, name: "↗" },
+        { dx: -1, dy: 1, name: "↖" },
+        { dx: 1, dy: -1, name: "↘" },
+        { dx: -1, dy: -1, name: "↙" }
+      ];
+
+      // ---------- grid helpers ----------
+      function makeGrid(size, fill) {
+        const a = new Array(size);
+        for (let i = 0; i < size; i++) a[i] = new Array(size).fill(fill);
+        return a;
+      }
+
+      function inBounds(x, y, N) {
+        return Math.abs(x) <= N && Math.abs(y) <= N;
+      }
+
+      function idx(x, N) {
+        return x + N;
+      }
+
+      function keyOf(x, y) {
+        return x + "," + y;
+      }
+
+      // BFS path through dug cells (8-neigh), inclusive endpoints
+      function shortestTunnelPath(dug, N, from, to) {
+        const size = 2 * N + 1;
+        const [sx, sy] = from;
+        const [tx, ty] = to;
+        if (sx === tx && sy === ty) return [[sx, sy]];
+        const q = [];
+        const visited = new Array(size * size).fill(false);
+        const prev = new Array(size * size).fill(-1);
+
+        const sIdx = idx(sx, N) + idx(sy, N) * size;
+        const tIdx = idx(tx, N) + idx(ty, N) * size;
+        q.push([sx, sy]);
+        visited[sIdx] = true;
+
+        while (q.length) {
+          const [x, y] = q.shift();
+          for (const d of DIRS8) {
+            const nx = x + d.dx;
+            const ny = y + d.dy;
+            if (!inBounds(nx, ny, N)) continue;
+            const xi = idx(nx, N);
+            const yi = idx(ny, N);
+            const flat = xi + yi * size;
+            if (visited[flat]) continue;
+            if (!dug[yi][xi]) continue; // only through tunnels
+            visited[flat] = true;
+            prev[flat] = idx(x, N) + idx(y, N) * size;
+            if (flat === tIdx) {
+              // reconstruct
+              const path = [];
+              let cur = flat;
+              while (cur !== -1) {
+                const cx = (cur % size) - N;
+                const cy = Math.floor(cur / size) - N;
+                path.push([cx, cy]);
+                if (cur === sIdx) break;
+                cur = prev[cur];
+              }
+              path.reverse();
+              return path;
+            }
+            q.push([nx, ny]);
+          }
+        }
+        return null;
+      }
+
+      // ---------- Scenario base ----------
+      class ScenarioBase {
+        constructor({ N, V, rng, princess }) {
+          this.N = N;
+          this.V = V;
+          this.rng = rng;
+          this.princess = princess; // [xp, yp]
+          this.size = 2 * N + 1;
+
+          this.dug = makeGrid(this.size, false); // [y][x]
+          // start is always dug (otherwise BFS in scenario3 breaks)
+          this.dug[idx(0, N)][idx(0, N)] = true;
+
+          this.ham = { x: 0, y: 0 };
+          this.time = 0;
+          this.found = false;
+          this.iter = 0;
+          this.lastLog = "";
+
+          if (this.isPrincess(0, 0)) {
+            this.found = true;
+            this.lastLog = `👸 уже в (0,0) — найдено мгновенно`;
+          }
+        }
+
+        isPrincess(x, y) {
+          return x === this.princess[0] && y === this.princess[1];
+        }
+
+        markDug(x, y) {
+          this.dug[idx(y, this.N)][idx(x, this.N)] = true;
+        }
+
+        isDug(x, y) {
+          return this.dug[idx(y, this.N)][idx(x, this.N)];
+        }
+
+        addTimeDig(steps = 1) {
+          this.time += steps * (1 / this.V);
+        }
+
+        addTimeWalk(steps = 1) {
+          this.time += steps * (1 / (10 * this.V));
+        }
+
+        step() {
+          throw new Error("Not implemented");
+        }
+
+        renderInto(container) {
+          // Build DOM once per render (N is small; ok). If нужно — оптимизируем позже.
+          container.style.gridTemplateColumns = `repeat(${this.size}, var(--cell))`;
+          container.replaceChildren();
+
+          const [px, py] = this.princess;
+          const hx = this.ham.x;
+          const hy = this.ham.y;
+
+          for (let y = this.N; y >= -this.N; y--) {
+            for (let x = -this.N; x <= this.N; x++) {
+              const span = document.createElement("span");
+              span.className = "cell";
+
+              let emoji = "⬜";
+              if (this.isDug(x, y)) emoji = "🟫";
+              if (x === px && y === py) emoji = "👸";
+              if (x === hx && y === hy) emoji = "🐹";
+              if (this.found && x === px && y === py) emoji = "🎉";
+
+              span.textContent = emoji;
+              container.appendChild(span);
+            }
+          }
+        }
+      }
+
+      // ---------- Scenario 1: long rays to wall + return ----------
+      class Scenario1 extends ScenarioBase {
+        constructor(opts) {
+          super(opts);
+          this.anchor = { x: 0, y: 0 };
+          this.boundaryAnchors = [{ x: 0, y: 0 }];
+          this.usedByAnchor = new Map(); // "x,y" -> Set(dirName)
+
+          this.phase = "choose"; // choose | dig | back | backShort
+          this.dir = null;
+          this.path = [];
+          this.backStepsRemaining = 0;
+        }
+
+        pickAnchorIfNeeded() {
+          const aKey = keyOf(this.anchor.x, this.anchor.y);
+          const used = this.usedByAnchor.get(aKey) || new Set();
+          if (used.size < DIRS8.length) return;
+          // all directions from this anchor were tried: jump to a random boundary anchor
+          const chosen = pick(this.rng, this.boundaryAnchors);
+          this.anchor = { x: chosen.x, y: chosen.y };
+          // keep used set for that anchor (may be partially explored)
+        }
+
+        chooseDirection() {
+          this.pickAnchorIfNeeded();
+          const aKey = keyOf(this.anchor.x, this.anchor.y);
+          let used = this.usedByAnchor.get(aKey);
+          if (!used) {
+            used = new Set();
+            this.usedByAnchor.set(aKey, used);
+          }
+          let available = DIRS8.filter((d) => !used.has(d.name));
+          if (!available.length) {
+            // Иногда мы попадаем в якорь, где уже перебрали все направления.
+            // По условию сценария прогоны продолжаются до успеха, поэтому разрешаем повторять направления.
+            used.clear();
+            available = DIRS8;
+          }
+          const d = pick(this.rng, available);
+          // pick() всегда вернёт элемент, потому что available непустой
+          used.add(d.name);
+          return d;
+        }
+
+        stepOneMove(mode) {
+          if (this.found) return false;
+
+          if (this.phase === "choose") {
+            this.ham.x = this.anchor.x;
+            this.ham.y = this.anchor.y;
+            this.dir = this.chooseDirection();
+            this.path = [];
+            this.phase = "dig";
+            this.lastLog = `Старт луча из (${this.anchor.x},${this.anchor.y}) направление ${this.dir.name}`;
+            return true;
+          }
+
+          if (this.phase === "dig") {
+            const nx = this.ham.x + this.dir.dx;
+            const ny = this.ham.y + this.dir.dy;
+
+            // wall: cannot step further
+            if (!inBounds(nx, ny, this.N)) {
+              // add this wall cell as potential anchor
+              this.boundaryAnchors.push({ x: this.ham.x, y: this.ham.y });
+              // Вместо полного возврата можно отступить на 1–2 шага и начать оттуда
+              const desired = 1 + Math.floor(this.rng() * 2); // 1..2
+              this.backStepsRemaining = Math.min(desired, this.path.length);
+              if (this.backStepsRemaining > 0) {
+                this.phase = "backShort";
+                this.lastLog = `Упёрся в стенку на (${this.ham.x},${this.ham.y}), отступаю на ${this.backStepsRemaining} и стартую снова`;
+              } else {
+                this.phase = "back";
+                this.lastLog = `Упёрся в стенку на (${this.ham.x},${this.ham.y}), возвращаюсь`;
+              }
+              return true;
+            }
+
+            // dig forward
+            this.path.push({ x: this.ham.x, y: this.ham.y }); // for return
+            this.ham.x = nx;
+            this.ham.y = ny;
+            if (!this.isDug(nx, ny)) {
+              this.markDug(nx, ny);
+              this.addTimeDig(1);
+            } else {
+              this.addTimeWalk(1);
+            }
+            this.iter++;
+            if (this.isPrincess(nx, ny)) {
+              this.found = true;
+              this.lastLog = `Нашёл 👸 на (${nx},${ny})`;
+            }
+            return true;
+          }
+
+          if (this.phase === "backShort") {
+            if (this.backStepsRemaining <= 0) {
+              this.anchor = { x: this.ham.x, y: this.ham.y };
+              this.phase = "choose";
+              this.lastLog = `Новая стартовая точка (${this.anchor.x},${this.anchor.y}), выбираю новый луч`;
+              return true;
+            }
+            const prev = this.path.pop();
+            if (!prev) {
+              this.backStepsRemaining = 0;
+              this.anchor = { x: this.ham.x, y: this.ham.y };
+              this.phase = "choose";
+              return true;
+            }
+            this.ham.x = prev.x;
+            this.ham.y = prev.y;
+            this.addTimeWalk(1);
+            this.iter++;
+            this.backStepsRemaining--;
+            if (this.isPrincess(this.ham.x, this.ham.y)) {
+              this.found = true;
+              this.lastLog = `Нашёл 👸 на (${this.ham.x},${this.ham.y})`;
+            }
+            return true;
+          }
+
+          if (this.phase === "back") {
+            if (this.ham.x === this.anchor.x && this.ham.y === this.anchor.y) {
+              this.phase = "choose";
+              this.lastLog = `Вернулся в (${this.anchor.x},${this.anchor.y}), выбираю новый луч`;
+              return true;
+            }
+            const prev = this.path.pop();
+            if (!prev) {
+              // fallback (shouldn't happen): snap to anchor
+              this.ham.x = this.anchor.x;
+              this.ham.y = this.anchor.y;
+              this.phase = "choose";
+              return true;
+            }
+            this.ham.x = prev.x;
+            this.ham.y = prev.y;
+            this.addTimeWalk(1);
+            this.iter++;
+            if (this.isPrincess(this.ham.x, this.ham.y)) {
+              this.found = true;
+              this.lastLog = `Нашёл 👸 на (${this.ham.x},${this.ham.y})`;
+            }
+            return true;
+          }
+
+          return false;
+        }
+
+        step({ digMovesPerTick, walkMovesPerTick }) {
+          if (this.found) return;
+          const mode = this.phase === "back" || this.phase === "backShort" ? "walk" : "dig";
+          const moves = mode === "walk" ? walkMovesPerTick : digMovesPerTick;
+          for (let i = 0; i < moves; i++) {
+            if (!this.stepOneMove(mode)) break;
+            if (this.found) break;
+          }
+        }
+      }
+
+      // ---------- Scenario 2: random excursions length lgN + return to origin ----------
+      class Scenario2 extends ScenarioBase {
+        constructor(opts) {
+          super(opts);
+          this.origin = { x: 0, y: 0 }; // старт текущей попытки (может смещаться по туннелям)
+          this.phase = "choose"; // choose | out | back
+          this.dir = null;
+          this.path = [];
+          this.remaining = 0;
+          this.L = Math.max(1, Math.round(Math.log2(this.N)));
+        }
+
+        stepOneMove() {
+          if (this.found) return false;
+
+          if (this.phase === "choose") {
+            // Начинаем новую попытку из origin (не обязательно (0,0))
+            this.ham.x = this.origin.x;
+            this.ham.y = this.origin.y;
+            this.dir = pick(this.rng, DIRS8);
+            this.remaining = this.L;
+            this.path = [];
+            this.phase = "out";
+            this.lastLog = `Попытка из (${this.origin.x},${this.origin.y}) L=lgN≈${this.L} направление ${this.dir.name}`;
+            return true;
+          }
+
+          if (this.phase === "out") {
+            if (this.remaining <= 0) {
+              this.phase = "back";
+              this.lastLog = `Терпение кончилось, возвращаюсь`;
+              return true;
+            }
+            const nx = this.ham.x + this.dir.dx;
+            const ny = this.ham.y + this.dir.dy;
+            if (!inBounds(nx, ny, this.N)) {
+              this.phase = "back";
+              this.lastLog = `Упёрся в стенку на (${this.ham.x},${this.ham.y}), возвращаюсь`;
+              return true;
+            }
+
+            this.path.push({ x: this.ham.x, y: this.ham.y });
+            this.ham.x = nx;
+            this.ham.y = ny;
+            if (!this.isDug(nx, ny)) {
+              // Новый грунт: тратим терпение и время копания
+              this.markDug(nx, ny);
+              this.addTimeDig(1);
+              this.remaining--;
+            } else {
+              // Уже вырытый туннель: не тратим терпение (иначе "топчется"),
+              // но время перемещения по туннелю остаётся.
+              this.addTimeWalk(1);
+              // Если идём по старому туннелю, то "проталкиваемся" до его конца и оттуда начинаем новую попытку.
+              const next2x = nx + this.dir.dx;
+              const next2y = ny + this.dir.dy;
+              if (!inBounds(next2x, next2y, this.N) || !this.isDug(next2x, next2y)) {
+                // конец туннеля в этом направлении
+                this.origin = { x: this.ham.x, y: this.ham.y };
+                this.phase = "choose";
+                this.lastLog = `Дошёл по туннелю до конца (${this.origin.x},${this.origin.y}) → новая попытка`;
+              }
+            }
+            this.iter++;
+            if (this.isPrincess(nx, ny)) {
+              this.found = true;
+              this.lastLog = `Нашёл 👸 на (${nx},${ny})`;
+            }
+            return true;
+          }
+
+          if (this.phase === "back") {
+            if (this.ham.x === this.origin.x && this.ham.y === this.origin.y) {
+              this.phase = "choose";
+              return true;
+            }
+            const prev = this.path.pop();
+            if (!prev) {
+              this.ham.x = this.origin.x;
+              this.ham.y = this.origin.y;
+              this.phase = "choose";
+              return true;
+            }
+            this.ham.x = prev.x;
+            this.ham.y = prev.y;
+            this.addTimeWalk(1);
+            this.iter++;
+            return true;
+          }
+
+          return false;
+        }
+
+        step({ digMovesPerTick, walkMovesPerTick }) {
+          if (this.found) return;
+          const mode = this.phase === "back" ? "walk" : "dig";
+          const moves = mode === "walk" ? walkMovesPerTick : digMovesPerTick;
+          for (let i = 0; i < moves; i++) {
+            if (!this.stepOneMove()) break;
+            if (this.found) break;
+          }
+        }
+      }
+
+      // ---------- Scenario 3: 3 branches + switching + restarts each 30 iters ----------
+      class Scenario3 extends ScenarioBase {
+        constructor(opts) {
+          super(opts);
+          this.branches = [];
+          this.active = 0;
+          this.switchPath = null; // array of [x,y] positions to walk
+          this.restartEvery = 30;
+          this.initBranchesAt([0, 0]);
+          this.lastLog = "Запуск 3 веток из (0,0)";
+        }
+
+        initBranchesAt([x, y]) {
+          const dirs = [...DIRS8];
+          // try to pick 3 distinct directions
+          const chosen = [];
+          for (let i = 0; i < 3; i++) {
+            const d = pick(this.rng, dirs.splice(Math.floor(this.rng() * dirs.length), 1));
+            chosen.push(d);
+          }
+          this.branches = chosen.map((d) => ({ x, y, dx: d.dx, dy: d.dy, name: d.name }));
+          this.active = 0;
+        }
+
+        randomDugCell() {
+          const cells = [];
+          for (let y = -this.N; y <= this.N; y++) {
+            for (let x = -this.N; x <= this.N; x++) {
+              if (this.isDug(x, y)) cells.push([x, y]);
+            }
+          }
+          return pick(this.rng, cells);
+        }
+
+        ensureSwitchPath(targetX, targetY) {
+          if (this.ham.x === targetX && this.ham.y === targetY) {
+            this.switchPath = null;
+            return;
+          }
+          const path = shortestTunnelPath(this.dug, this.N, [this.ham.x, this.ham.y], [targetX, targetY]);
+          if (!path) {
+            // if disconnected (rare; but can happen early), just "snap" (still counts as switch)
+            this.ham.x = targetX;
+            this.ham.y = targetY;
+            this.switchPath = null;
+            return;
+          }
+          // path includes current cell; we need next steps only
+          this.switchPath = path.slice(1);
+        }
+
+        stepOneMove() {
+          if (this.found) return false;
+
+          if (this.iter > 0 && this.iter % this.restartEvery === 0) {
+            const origin = this.randomDugCell();
+            this.initBranchesAt(origin);
+            this.lastLog = `Рестарт из случайной точки (${origin[0]},${origin[1]}) → 3 направления`;
+            // force switch to first branch
+            this.switchPath = null;
+          }
+
+          const b = this.branches[this.active];
+
+          // if need to walk to current branch position
+          if (!this.switchPath) this.ensureSwitchPath(b.x, b.y);
+          if (this.switchPath && this.switchPath.length) {
+            const [nx, ny] = this.switchPath.shift();
+            this.ham.x = nx;
+            this.ham.y = ny;
+            this.addTimeWalk(1);
+            this.iter++;
+            return true;
+          }
+
+          // extend branch by one cell (dig if needed)
+          let nx = b.x + b.dx;
+          let ny = b.y + b.dy;
+          if (!inBounds(nx, ny, this.N)) {
+            // pick a new direction that stays in bounds (best-effort)
+            const shuffled = [...DIRS8].sort(() => this.rng() - 0.5);
+            let chosen = null;
+            for (const d of shuffled) {
+              const tx = b.x + d.dx;
+              const ty = b.y + d.dy;
+              if (inBounds(tx, ty, this.N)) {
+                chosen = d;
+                break;
+              }
+            }
+            if (chosen) {
+              b.dx = chosen.dx;
+              b.dy = chosen.dy;
+              b.name = chosen.name;
+              this.lastLog = `Ветка ${this.active + 1}: упёрся в стенку, новый курс ${chosen.name}`;
+            }
+            // no movement this substep; will move next tick
+            this.active = (this.active + 1) % 3;
+            return true;
+          }
+
+          // move hamster to frontier (already there by design), then step
+          b.x = nx;
+          b.y = ny;
+          this.ham.x = nx;
+          this.ham.y = ny;
+          if (!this.isDug(nx, ny)) {
+            this.markDug(nx, ny);
+            this.addTimeDig(1);
+          } else {
+            this.addTimeWalk(1);
+          }
+          this.iter++;
+          if (this.isPrincess(nx, ny)) {
+            this.found = true;
+            this.lastLog = `Нашёл 👸 на (${nx},${ny})`;
+          } else {
+            this.lastLog = `Ветка ${this.active + 1}: шаг ${b.name} в (${nx},${ny})`;
+          }
+          this.active = (this.active + 1) % 3;
+          this.switchPath = null; // next time may need to walk to next branch
+          return true;
+        }
+
+        step({ digMovesPerTick, walkMovesPerTick }) {
+          if (this.found) return;
+          // Scenario3 often alternates walk/dig; use a conservative mixed budget per tick
+          const budget = digMovesPerTick + walkMovesPerTick;
+          for (let i = 0; i < budget; i++) {
+            if (!this.stepOneMove()) break;
+            if (this.found) break;
+          }
+        }
+      }
+
+      // ---------- app ----------
+      const els = {
+        nInput: document.getElementById("nInput"),
+        runsInput: document.getElementById("runsInput"),
+        vInput: document.getElementById("vInput"),
+        delayInput: document.getElementById("delayInput"),
+        delayVal: document.getElementById("delayVal"),
+        seedInput: document.getElementById("seedInput"),
+        princessMode: document.getElementById("princessMode"),
+        xpInput: document.getElementById("xpInput"),
+        ypInput: document.getElementById("ypInput"),
+        startBtn: document.getElementById("startBtn"),
+        stopBtn: document.getElementById("stopBtn"),
+        resetBtn: document.getElementById("resetBtn"),
+        grid1: document.getElementById("grid1"),
+        grid2: document.getElementById("grid2"),
+        grid3: document.getElementById("grid3"),
+        log1: document.getElementById("log1"),
+        log2: document.getElementById("log2"),
+        log3: document.getElementById("log3"),
+        meta1: document.getElementById("meta1"),
+        meta2: document.getElementById("meta2"),
+        meta3: document.getElementById("meta3"),
+        runPill: document.getElementById("runPill"),
+        princessNote: document.getElementById("princessNote"),
+        t1Now: document.getElementById("t1Now"),
+        t2Now: document.getElementById("t2Now"),
+        t3Now: document.getElementById("t3Now"),
+        t1Avg: document.getElementById("t1Avg"),
+        t2Avg: document.getElementById("t2Avg"),
+        t3Avg: document.getElementById("t3Avg"),
+        t1Done: document.getElementById("t1Done"),
+        t2Done: document.getElementById("t2Done"),
+        t3Done: document.getElementById("t3Done")
+      };
+
+      let running = false;
+      let shouldStop = false;
+
+      const agg = {
+        totalRuns: 0,
+        s1: { done: 0, sum: 0, last: NaN },
+        s2: { done: 0, sum: 0, last: NaN },
+        s3: { done: 0, sum: 0, last: NaN }
+      };
+
+      function setControlsDisabled(disabled) {
+        for (const k of [
+          "nInput",
+          "runsInput",
+          "vInput",
+          "delayInput",
+          "seedInput",
+          "princessMode",
+          "xpInput",
+          "ypInput"
+        ]) {
+          els[k].disabled = disabled;
+        }
+        els.startBtn.disabled = disabled;
+        els.stopBtn.disabled = !disabled;
+      }
+
+      function updateDelayLabel() {
+        els.delayVal.textContent = `${els.delayInput.value} ms/тик`;
+      }
+
+      function sleep(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+
+      function resetAgg() {
+        agg.totalRuns = 0;
+        for (const s of [agg.s1, agg.s2, agg.s3]) {
+          s.done = 0;
+          s.sum = 0;
+          s.last = NaN;
+        }
+        updateResultsUI(null);
+      }
+
+      function updateResultsUI(princesses) {
+        els.runPill.textContent = `Находки: S1 ${agg.s1.done}/${agg.totalRuns} | S2 ${agg.s2.done}/${agg.totalRuns} | S3 ${agg.s3.done}/${agg.totalRuns}`;
+        els.t1Now.textContent = Number.isFinite(agg.s1.last) ? formatTime(agg.s1.last) : "—";
+        els.t2Now.textContent = Number.isFinite(agg.s2.last) ? formatTime(agg.s2.last) : "—";
+        els.t3Now.textContent = Number.isFinite(agg.s3.last) ? formatTime(agg.s3.last) : "—";
+
+        els.t1Avg.textContent = agg.s1.done ? formatTime(agg.s1.sum / agg.s1.done) : "—";
+        els.t2Avg.textContent = agg.s2.done ? formatTime(agg.s2.sum / agg.s2.done) : "—";
+        els.t3Avg.textContent = agg.s3.done ? formatTime(agg.s3.sum / agg.s3.done) : "—";
+
+        els.t1Done.textContent = String(agg.s1.done);
+        els.t2Done.textContent = String(agg.s2.done);
+        els.t3Done.textContent = String(agg.s3.done);
+
+        if (!princesses) {
+          els.princessNote.textContent = "Принцесса: —";
+        } else {
+          const fmt = (p) => `(${p[0]}, ${p[1]})`;
+          els.princessNote.textContent = `Принцесса сейчас: S1 ${fmt(princesses.s1)} | S2 ${fmt(
+            princesses.s2
+          )} | S3 ${fmt(princesses.s3)}`;
+        }
+      }
+
+      function updateScenarioUI(s1, s2, s3) {
+        s1.renderInto(els.grid1);
+        s2.renderInto(els.grid2);
+        s3.renderInto(els.grid3);
+
+        els.meta1.textContent = `t=${formatTime(s1.time)}  итерации=${s1.iter}`;
+        els.meta2.textContent = `t=${formatTime(s2.time)}  итерации=${s2.iter}`;
+        els.meta3.textContent = `t=${formatTime(s3.time)}  итерации=${s3.iter}`;
+
+        els.log1.textContent = s1.lastLog || "";
+        els.log2.textContent = s2.lastLog || "";
+        els.log3.textContent = s3.lastLog || "";
+      }
+
+      function samplePrincess(N, rng) {
+        const x = Math.floor(rng() * (2 * N + 1)) - N;
+        const y = Math.floor(rng() * (2 * N + 1)) - N;
+        return [x, y];
+      }
+
+      async function runAll() {
+        const N = clampInt(els.nInput.value, 2, 40);
+        const runs = clampInt(els.runsInput.value, 1, 500);
+        const V = clampInt(els.vInput.value, 1, 50);
+        const delayMs = clampInt(els.delayInput.value, 0, 250);
+
+        // Keep emoji grid readable: adjust cell size by N
+        const cellPx = N <= 12 ? 22 : N <= 20 ? 18 : 16;
+        const cellFont = N <= 12 ? 18 : N <= 20 ? 15 : 14;
+        document.documentElement.style.setProperty("--cell", `${cellPx}px`);
+        document.documentElement.style.setProperty("--cell-font", `${cellFont}px`);
+
+        els.xpInput.min = String(-N);
+        els.xpInput.max = String(N);
+        els.ypInput.min = String(-N);
+        els.ypInput.max = String(N);
+
+        const seedStr = String(els.seedInput.value || "").trim();
+        const seed = seedStr ? hashStringToSeed(seedStr) : (Date.now() >>> 0);
+        const rng = mulberry32(seed);
+
+        agg.totalRuns = runs;
+        updateResultsUI(null);
+
+        const digMovesPerTick = V;
+        const walkMovesPerTick = 10 * V;
+
+        const nextPrincess = () => {
+          if (els.princessMode.value === "fixed") {
+            const xp = clampInt(els.xpInput.value, -N, N);
+            const yp = clampInt(els.ypInput.value, -N, N);
+            return [xp, yp];
+          }
+          return samplePrincess(N, rng);
+        };
+
+        const state = {
+          s1: {
+            princess: nextPrincess(),
+            inst: null,
+            pendingRestart: false,
+            nextPrincess: null
+          },
+          s2: {
+            princess: nextPrincess(),
+            inst: null,
+            pendingRestart: false,
+            nextPrincess: null
+          },
+          s3: {
+            princess: nextPrincess(),
+            inst: null,
+            pendingRestart: false,
+            nextPrincess: null
+          }
+        };
+
+        state.s1.inst = new Scenario1({ N, V, rng, princess: state.s1.princess });
+        state.s2.inst = new Scenario2({ N, V, rng, princess: state.s2.princess });
+        state.s3.inst = new Scenario3({ N, V, rng, princess: state.s3.princess });
+
+        updateScenarioUI(state.s1.inst, state.s2.inst, state.s3.inst);
+        updateResultsUI({ s1: state.s1.princess, s2: state.s2.princess, s3: state.s3.princess });
+
+        const allDone = () => agg.s1.done >= runs && agg.s2.done >= runs && agg.s3.done >= runs;
+
+        while (!shouldStop && !allDone()) {
+          // restart scenarios that finished on previous tick (so we show 🎉 хотя бы 1 тик)
+          for (const [key, ScenarioCtor] of [
+            ["s1", Scenario1],
+            ["s2", Scenario2],
+            ["s3", Scenario3]
+          ]) {
+            const st = state[key];
+            if (st.pendingRestart) {
+              st.pendingRestart = false;
+              if (agg[key].done < runs) {
+                st.princess = st.nextPrincess;
+                st.nextPrincess = null;
+                st.inst = new ScenarioCtor({ N, V, rng, princess: st.princess });
+              }
+            }
+          }
+
+          // step each scenario independently
+          if (agg.s1.done < runs && !state.s1.inst.found) state.s1.inst.step({ digMovesPerTick, walkMovesPerTick });
+          if (agg.s2.done < runs && !state.s2.inst.found) state.s2.inst.step({ digMovesPerTick, walkMovesPerTick });
+          if (agg.s3.done < runs && !state.s3.inst.found) state.s3.inst.step({ digMovesPerTick, walkMovesPerTick });
+
+          // if someone just found princess — count immediately, but restart next tick
+          for (const key of ["s1", "s2", "s3"]) {
+            const st = state[key];
+            if (agg[key].done >= runs) continue;
+            if (st.inst.found && !st.pendingRestart) {
+              agg[key].done++;
+              agg[key].sum += st.inst.time;
+              agg[key].last = st.inst.time;
+              if (agg[key].done < runs) {
+                st.nextPrincess = nextPrincess();
+                st.pendingRestart = true;
+              }
+            } else if (!st.inst.found) {
+              // live "now"
+              agg[key].last = st.inst.time;
+            }
+          }
+
+          updateScenarioUI(state.s1.inst, state.s2.inst, state.s3.inst);
+          updateResultsUI({ s1: state.s1.princess, s2: state.s2.princess, s3: state.s3.princess });
+
+          if (delayMs > 0) await sleep(delayMs);
+          else await new Promise((rAF) => requestAnimationFrame(() => rAF()));
+        }
+
+        running = false;
+        shouldStop = false;
+        setControlsDisabled(false);
+      }
+
+      // ---------- events ----------
+      updateDelayLabel();
+      els.delayInput.addEventListener("input", updateDelayLabel);
+
+      els.resetBtn.addEventListener("click", () => {
+        shouldStop = true;
+        running = false;
+        setControlsDisabled(false);
+        resetAgg();
+        els.grid1.replaceChildren();
+        els.grid2.replaceChildren();
+        els.grid3.replaceChildren();
+        els.log1.textContent = "";
+        els.log2.textContent = "";
+        els.log3.textContent = "";
+        els.meta1.textContent = "—";
+        els.meta2.textContent = "—";
+        els.meta3.textContent = "—";
+        els.princessNote.textContent = "Принцесса: —";
+      });
+
+      els.stopBtn.addEventListener("click", () => {
+        shouldStop = true;
+        els.stopBtn.disabled = true;
+      });
+
+      els.startBtn.addEventListener("click", async () => {
+        if (running) return;
+        resetAgg();
+        running = true;
+        shouldStop = false;
+        setControlsDisabled(true);
+        try {
+          await runAll();
+        } catch (e) {
+          console.error(e);
+          alert("Ошибка в симуляции: " + (e?.message || String(e)));
+          running = false;
+          shouldStop = false;
+          setControlsDisabled(false);
+        }
+      });
+    </script>
+  </body>
+</html>
+

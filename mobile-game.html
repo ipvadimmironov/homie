@@ -1,0 +1,1144 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Homie — Mobile game</title>
+    <style>
+      :root {
+        --bg: #0b0f17;
+        --panel: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.14);
+        --text: #e7eefc;
+        --muted: #aab7d6;
+        --accent: #7dd3fc;
+        --danger: #fb7185;
+        --good: #34d399;
+      }
+      * {
+        box-sizing: border-box;
+        touch-action: none;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(900px 600px at 30% 0%, #132036 0%, var(--bg) 60%);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Segoe UI Emoji",
+          "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+        overscroll-behavior: none;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 12px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      }
+      .title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .title h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+      }
+      .title .sub {
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      .panel {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+        border-radius: 14px;
+        padding: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        align-items: end;
+        margin-bottom: 10px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      input[type="number"],
+      input[type="text"] {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--text);
+        padding: 10px 10px;
+        outline: none;
+      }
+      input[type="number"]:focus,
+      input[type="text"]:focus {
+        border-color: rgba(125, 211, 252, 0.6);
+        box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.12);
+      }
+      .btns {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      button {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      button.primary {
+        border-color: rgba(125, 211, 252, 0.45);
+        background: rgba(125, 211, 252, 0.14);
+      }
+      button.danger {
+        border-color: rgba(251, 113, 133, 0.55);
+        background: rgba(251, 113, 133, 0.12);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .mini-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .mini {
+        display: grid;
+        gap: 8px;
+      }
+      .mini .head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      canvas {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.16);
+        image-rendering: pixelated;
+      }
+
+      .emoji-grid {
+        --cell: 22px;
+        --cell-font: 18px;
+        display: grid;
+        gap: 2px;
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.16);
+        padding: 10px;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .cell {
+        width: var(--cell);
+        height: var(--cell);
+        display: grid;
+        place-items: center;
+        font-size: var(--cell-font);
+        line-height: 1;
+        user-select: none;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Segoe UI Emoji",
+          "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      }
+      .big {
+        margin-top: 6px;
+      }
+      .status {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.15);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.6);
+      }
+      .overlay.show {
+        display: flex;
+      }
+      .modal {
+        width: min(520px, 100%);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: #0f1622;
+        padding: 14px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+      }
+      .modal h2 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        font-weight: 900;
+      }
+      .modal p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35;
+      }
+      .modal .row {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        margin-left: 10px;
+      }
+      @media (max-width: 520px) {
+        .controls {
+          grid-template-columns: 1fr 1fr;
+        }
+        .btns {
+          grid-column: 1 / -1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="title">
+        <h1>Homie — игра (mobile)</h1>
+        <div class="sub" id="hud">—</div>
+      </div>
+
+      <div class="panel">
+        <div class="controls">
+          <div class="field">
+            <label for="nInput">N (полуразмер поля)</label>
+            <input id="nInput" type="number" min="2" max="40" step="1" value="6" />
+          </div>
+          <div class="field">
+            <label for="vInput">V (скорость AI в тик)</label>
+            <input id="vInput" type="number" min="1" max="50" step="1" value="1" />
+          </div>
+          <div class="field">
+            <label for="seedInput">Seed (опц.)</label>
+            <input id="seedInput" type="text" placeholder="например 123" />
+          </div>
+          <div class="btns">
+            <button id="resetBtn">Reset</button>
+            <button id="startBtn" class="primary">Start</button>
+          </div>
+        </div>
+
+        <div class="mini-row">
+          <div class="mini">
+            <div class="head">
+              <div>Сценарий 1</div>
+              <div id="m1">—</div>
+            </div>
+            <canvas id="mini1"></canvas>
+          </div>
+          <div class="mini">
+            <div class="head">
+              <div>Сценарий 2</div>
+              <div id="m2">—</div>
+            </div>
+            <canvas id="mini2"></canvas>
+          </div>
+          <div class="mini">
+            <div class="head">
+              <div>Сценарий 3</div>
+              <div id="m3">—</div>
+            </div>
+            <canvas id="mini3"></canvas>
+          </div>
+        </div>
+
+        <div class="big">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+            <div style="color: var(--muted); font-size: 12px">Вы (свайп/drag): видите 🐹 и пройденное, 👸 скрыта</div>
+            <div class="pill">⬜ земля • 🟫 пройдено • 🐹 вы • 👸 (только на мини‑картах)</div>
+          </div>
+          <div id="bigGrid" class="emoji-grid" aria-label="Игровое поле"></div>
+        </div>
+
+        <div class="status" id="status">
+          Управление: проведите пальцем по большому полю. Если ведёте вверх — 🐹 идёт вверх, и т.д. (диагонали поддерживаются).
+          Каждый ваш шаг = 1 ход. После вашего хода AI-хомяки делают свои шаги по сценарию.
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="modal">
+        <h2 id="modalTitle">—</h2>
+        <p id="modalText">—</p>
+        <div class="row">
+          <button id="modalClose" class="primary">Ок</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ---------- utils ----------
+      function clampInt(v, min, max) {
+        const n = Number.parseInt(String(v), 10);
+        if (Number.isNaN(n)) return min;
+        return Math.max(min, Math.min(max, n));
+      }
+      function mulberry32(seed) {
+        let t = seed >>> 0;
+        return function () {
+          t += 0x6d2b79f5;
+          let x = Math.imul(t ^ (t >>> 15), 1 | t);
+          x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
+          return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      function hashStringToSeed(s) {
+        let h = 2166136261;
+        for (let i = 0; i < s.length; i++) {
+          h ^= s.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      }
+      function pick(rng, arr) {
+        return arr[Math.floor(rng() * arr.length)];
+      }
+      function inBounds(x, y, N) {
+        return Math.abs(x) <= N && Math.abs(y) <= N;
+      }
+      function idx(x, N) {
+        return x + N;
+      }
+      function keyOf(x, y) {
+        return x + "," + y;
+      }
+
+      const DIRS8 = [
+        { dx: 1, dy: 0, name: "→" },
+        { dx: -1, dy: 0, name: "←" },
+        { dx: 0, dy: 1, name: "↑" },
+        { dx: 0, dy: -1, name: "↓" },
+        { dx: 1, dy: 1, name: "↗" },
+        { dx: -1, dy: 1, name: "↖" },
+        { dx: 1, dy: -1, name: "↘" },
+        { dx: -1, dy: -1, name: "↙" }
+      ];
+
+      function makeGrid(size, fill) {
+        const a = new Array(size);
+        for (let i = 0; i < size; i++) a[i] = new Array(size).fill(fill);
+        return a;
+      }
+
+      // ---------- Scenario base (same as in index.html, but minimal) ----------
+      class ScenarioBase {
+        constructor({ N, V, rng, princess }) {
+          this.N = N;
+          this.V = V;
+          this.rng = rng;
+          this.princess = princess; // [x,y]
+          this.size = 2 * N + 1;
+
+          this.dug = makeGrid(this.size, false); // [y][x]
+          this.dug[idx(0, N)][idx(0, N)] = true;
+
+          this.ham = { x: 0, y: 0 };
+          this.time = 0;
+          this.found = false;
+          this.iter = 0;
+
+          if (this.isPrincess(0, 0)) {
+            this.found = true;
+          }
+        }
+        isPrincess(x, y) {
+          return x === this.princess[0] && y === this.princess[1];
+        }
+        markDug(x, y) {
+          this.dug[idx(y, this.N)][idx(x, this.N)] = true;
+        }
+        isDug(x, y) {
+          return this.dug[idx(y, this.N)][idx(x, this.N)];
+        }
+        addTimeDig(steps = 1) {
+          this.time += steps * (1 / this.V);
+        }
+        addTimeWalk(steps = 1) {
+          this.time += steps * (1 / (10 * this.V));
+        }
+        step() {
+          throw new Error("Not implemented");
+        }
+      }
+
+      class Scenario1 extends ScenarioBase {
+        constructor(opts) {
+          super(opts);
+          this.anchor = { x: 0, y: 0 };
+          this.boundaryAnchors = [{ x: 0, y: 0 }];
+          this.usedByAnchor = new Map();
+          this.phase = "choose"; // choose | dig | back | backShort
+          this.dir = null;
+          this.path = [];
+          this.backStepsRemaining = 0;
+        }
+        pickAnchorIfNeeded() {
+          const aKey = keyOf(this.anchor.x, this.anchor.y);
+          const used = this.usedByAnchor.get(aKey) || new Set();
+          if (used.size < DIRS8.length) return;
+          const chosen = pick(this.rng, this.boundaryAnchors);
+          this.anchor = { x: chosen.x, y: chosen.y };
+        }
+        chooseDirection() {
+          this.pickAnchorIfNeeded();
+          const aKey = keyOf(this.anchor.x, this.anchor.y);
+          let used = this.usedByAnchor.get(aKey);
+          if (!used) {
+            used = new Set();
+            this.usedByAnchor.set(aKey, used);
+          }
+          let available = DIRS8.filter((d) => !used.has(d.name));
+          if (!available.length) {
+            used.clear();
+            available = DIRS8;
+          }
+          const d = pick(this.rng, available);
+          used.add(d.name);
+          return d;
+        }
+        stepOneMove() {
+          if (this.found) return false;
+
+          if (this.phase === "choose") {
+            this.ham.x = this.anchor.x;
+            this.ham.y = this.anchor.y;
+            this.dir = this.chooseDirection();
+            this.path = [];
+            this.phase = "dig";
+            return true;
+          }
+
+          if (this.phase === "dig") {
+            const nx = this.ham.x + this.dir.dx;
+            const ny = this.ham.y + this.dir.dy;
+            if (!inBounds(nx, ny, this.N)) {
+              this.boundaryAnchors.push({ x: this.ham.x, y: this.ham.y });
+              const desired = 1 + Math.floor(this.rng() * 2);
+              this.backStepsRemaining = Math.min(desired, this.path.length);
+              if (this.backStepsRemaining > 0) this.phase = "backShort";
+              else this.phase = "back";
+              return true;
+            }
+            this.path.push({ x: this.ham.x, y: this.ham.y });
+            this.ham.x = nx;
+            this.ham.y = ny;
+            if (!this.isDug(nx, ny)) {
+              this.markDug(nx, ny);
+              this.addTimeDig(1);
+            } else {
+              this.addTimeWalk(1);
+            }
+            this.iter++;
+            if (this.isPrincess(nx, ny)) this.found = true;
+            return true;
+          }
+
+          if (this.phase === "backShort") {
+            if (this.backStepsRemaining <= 0) {
+              this.anchor = { x: this.ham.x, y: this.ham.y };
+              this.phase = "choose";
+              return true;
+            }
+            const prev = this.path.pop();
+            if (!prev) {
+              this.backStepsRemaining = 0;
+              this.anchor = { x: this.ham.x, y: this.ham.y };
+              this.phase = "choose";
+              return true;
+            }
+            this.ham.x = prev.x;
+            this.ham.y = prev.y;
+            this.addTimeWalk(1);
+            this.iter++;
+            this.backStepsRemaining--;
+            if (this.isPrincess(this.ham.x, this.ham.y)) this.found = true;
+            return true;
+          }
+
+          if (this.phase === "back") {
+            if (this.ham.x === this.anchor.x && this.ham.y === this.anchor.y) {
+              this.phase = "choose";
+              return true;
+            }
+            const prev = this.path.pop();
+            if (!prev) {
+              this.ham.x = this.anchor.x;
+              this.ham.y = this.anchor.y;
+              this.phase = "choose";
+              return true;
+            }
+            this.ham.x = prev.x;
+            this.ham.y = prev.y;
+            this.addTimeWalk(1);
+            this.iter++;
+            if (this.isPrincess(this.ham.x, this.ham.y)) this.found = true;
+            return true;
+          }
+
+          return false;
+        }
+        step({ digMovesPerTick, walkMovesPerTick }) {
+          if (this.found) return;
+          const isWalk = this.phase === "back" || this.phase === "backShort";
+          const moves = isWalk ? walkMovesPerTick : digMovesPerTick;
+          for (let i = 0; i < moves; i++) {
+            if (!this.stepOneMove()) break;
+            if (this.found) break;
+          }
+        }
+      }
+
+      class Scenario2 extends ScenarioBase {
+        constructor(opts) {
+          super(opts);
+          this.origin = { x: 0, y: 0 };
+          this.phase = "choose"; // choose | out | back
+          this.dir = null;
+          this.path = [];
+          this.remaining = 0;
+          this.L = Math.max(1, Math.round(Math.log2(this.N)));
+        }
+        stepOneMove() {
+          if (this.found) return false;
+
+          if (this.phase === "choose") {
+            this.ham.x = this.origin.x;
+            this.ham.y = this.origin.y;
+            this.dir = pick(this.rng, DIRS8);
+            this.remaining = this.L;
+            this.path = [];
+            this.phase = "out";
+            return true;
+          }
+
+          if (this.phase === "out") {
+            if (this.remaining <= 0) {
+              this.phase = "back";
+              return true;
+            }
+            const nx = this.ham.x + this.dir.dx;
+            const ny = this.ham.y + this.dir.dy;
+            if (!inBounds(nx, ny, this.N)) {
+              this.phase = "back";
+              return true;
+            }
+
+            this.path.push({ x: this.ham.x, y: this.ham.y });
+            this.ham.x = nx;
+            this.ham.y = ny;
+
+            if (!this.isDug(nx, ny)) {
+              this.markDug(nx, ny);
+              this.addTimeDig(1);
+              this.remaining--;
+            } else {
+              this.addTimeWalk(1);
+              const next2x = nx + this.dir.dx;
+              const next2y = ny + this.dir.dy;
+              if (!inBounds(next2x, next2y, this.N) || !this.isDug(next2x, next2y)) {
+                this.origin = { x: this.ham.x, y: this.ham.y };
+                this.phase = "choose";
+              }
+            }
+            this.iter++;
+            if (this.isPrincess(nx, ny)) this.found = true;
+            return true;
+          }
+
+          if (this.phase === "back") {
+            if (this.ham.x === this.origin.x && this.ham.y === this.origin.y) {
+              this.phase = "choose";
+              return true;
+            }
+            const prev = this.path.pop();
+            if (!prev) {
+              this.ham.x = this.origin.x;
+              this.ham.y = this.origin.y;
+              this.phase = "choose";
+              return true;
+            }
+            this.ham.x = prev.x;
+            this.ham.y = prev.y;
+            this.addTimeWalk(1);
+            this.iter++;
+            if (this.isPrincess(this.ham.x, this.ham.y)) this.found = true;
+            return true;
+          }
+
+          return false;
+        }
+        step({ digMovesPerTick, walkMovesPerTick }) {
+          if (this.found) return;
+          const isWalk = this.phase === "back";
+          const moves = isWalk ? walkMovesPerTick : digMovesPerTick;
+          for (let i = 0; i < moves; i++) {
+            if (!this.stepOneMove()) break;
+            if (this.found) break;
+          }
+        }
+      }
+
+      // Scenario3: simplified (3 branches, switching cost ignored for game fairness; still uses time)
+      // For game we keep same behavior as main sim: 3 branches + switching + restarts each 30 iters
+      function shortestTunnelPath(dug, N, from, to) {
+        const size = 2 * N + 1;
+        const [sx, sy] = from;
+        const [tx, ty] = to;
+        if (sx === tx && sy === ty) return [[sx, sy]];
+        const q = [];
+        const visited = new Array(size * size).fill(false);
+        const prev = new Array(size * size).fill(-1);
+        const sIdx = idx(sx, N) + idx(sy, N) * size;
+        const tIdx = idx(tx, N) + idx(ty, N) * size;
+        q.push([sx, sy]);
+        visited[sIdx] = true;
+        while (q.length) {
+          const [x, y] = q.shift();
+          for (const d of DIRS8) {
+            const nx = x + d.dx;
+            const ny = y + d.dy;
+            if (!inBounds(nx, ny, N)) continue;
+            const xi = idx(nx, N);
+            const yi = idx(ny, N);
+            const flat = xi + yi * size;
+            if (visited[flat]) continue;
+            if (!dug[yi][xi]) continue;
+            visited[flat] = true;
+            prev[flat] = idx(x, N) + idx(y, N) * size;
+            if (flat === tIdx) {
+              const path = [];
+              let cur = flat;
+              while (cur !== -1) {
+                const cx = (cur % size) - N;
+                const cy = Math.floor(cur / size) - N;
+                path.push([cx, cy]);
+                if (cur === sIdx) break;
+                cur = prev[cur];
+              }
+              path.reverse();
+              return path;
+            }
+            q.push([nx, ny]);
+          }
+        }
+        return null;
+      }
+
+      class Scenario3 extends ScenarioBase {
+        constructor(opts) {
+          super(opts);
+          this.branches = [];
+          this.active = 0;
+          this.switchPath = null;
+          this.restartEvery = 30;
+          this.initBranchesAt([0, 0]);
+        }
+        initBranchesAt([x, y]) {
+          const dirs = [...DIRS8];
+          const chosen = [];
+          for (let i = 0; i < 3; i++) {
+            const d = pick(this.rng, dirs.splice(Math.floor(this.rng() * dirs.length), 1));
+            chosen.push(d);
+          }
+          this.branches = chosen.map((d) => ({ x, y, dx: d.dx, dy: d.dy, name: d.name }));
+          this.active = 0;
+        }
+        randomDugCell() {
+          const cells = [];
+          for (let y = -this.N; y <= this.N; y++) {
+            for (let x = -this.N; x <= this.N; x++) {
+              if (this.isDug(x, y)) cells.push([x, y]);
+            }
+          }
+          return pick(this.rng, cells);
+        }
+        ensureSwitchPath(targetX, targetY) {
+          if (this.ham.x === targetX && this.ham.y === targetY) {
+            this.switchPath = null;
+            return;
+          }
+          const path = shortestTunnelPath(this.dug, this.N, [this.ham.x, this.ham.y], [targetX, targetY]);
+          this.switchPath = path ? path.slice(1) : null;
+          if (!this.switchPath) {
+            this.ham.x = targetX;
+            this.ham.y = targetY;
+          }
+        }
+        stepOneMove() {
+          if (this.found) return false;
+          if (this.iter > 0 && this.iter % this.restartEvery === 0) {
+            const origin = this.randomDugCell();
+            this.initBranchesAt(origin);
+            this.switchPath = null;
+          }
+          const b = this.branches[this.active];
+          if (!this.switchPath) this.ensureSwitchPath(b.x, b.y);
+          if (this.switchPath && this.switchPath.length) {
+            const [nx, ny] = this.switchPath.shift();
+            this.ham.x = nx;
+            this.ham.y = ny;
+            this.addTimeWalk(1);
+            this.iter++;
+            return true;
+          }
+          let nx = b.x + b.dx;
+          let ny = b.y + b.dy;
+          if (!inBounds(nx, ny, this.N)) {
+            const shuffled = [...DIRS8].sort(() => this.rng() - 0.5);
+            let chosen = null;
+            for (const d of shuffled) {
+              const tx = b.x + d.dx;
+              const ty = b.y + d.dy;
+              if (inBounds(tx, ty, this.N)) {
+                chosen = d;
+                break;
+              }
+            }
+            if (chosen) {
+              b.dx = chosen.dx;
+              b.dy = chosen.dy;
+              b.name = chosen.name;
+            }
+            this.active = (this.active + 1) % 3;
+            return true;
+          }
+          b.x = nx;
+          b.y = ny;
+          this.ham.x = nx;
+          this.ham.y = ny;
+          if (!this.isDug(nx, ny)) {
+            this.markDug(nx, ny);
+            this.addTimeDig(1);
+          } else {
+            this.addTimeWalk(1);
+          }
+          this.iter++;
+          if (this.isPrincess(nx, ny)) this.found = true;
+          this.active = (this.active + 1) % 3;
+          this.switchPath = null;
+          return true;
+        }
+        step({ digMovesPerTick, walkMovesPerTick }) {
+          if (this.found) return;
+          const budget = digMovesPerTick + walkMovesPerTick;
+          for (let i = 0; i < budget; i++) {
+            if (!this.stepOneMove()) break;
+            if (this.found) break;
+          }
+        }
+      }
+
+      // ---------- rendering ----------
+      function setupCanvas(canvas, pixels) {
+        // pixels = size
+        const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+        canvas.width = pixels * dpr;
+        canvas.height = pixels * dpr;
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+        return ctx;
+      }
+
+      function drawMap(ctx, N, dug, ham, princess, { showPrincess, colorHam }) {
+        const size = 2 * N + 1;
+        const w = size;
+        const h = size;
+        ctx.clearRect(0, 0, w, h);
+
+        // background
+        ctx.fillStyle = "#111827";
+        ctx.fillRect(0, 0, w, h);
+
+        // dug
+        ctx.fillStyle = "#22c55e"; // green visited
+        for (let y = -N; y <= N; y++) {
+          for (let x = -N; x <= N; x++) {
+            if (dug[idx(y, N)][idx(x, N)]) {
+              const px = x + N;
+              const py = (N - y); // invert Y for display
+              ctx.fillRect(px, py, 1, 1);
+            }
+          }
+        }
+
+        if (showPrincess && princess) {
+          ctx.fillStyle = "#fbbf24"; // yellow
+          const px = princess[0] + N;
+          const py = (N - princess[1]);
+          ctx.fillRect(px, py, 1, 1);
+        }
+
+        // hamster
+        ctx.fillStyle = colorHam;
+        const hx = ham.x + N;
+        const hy = (N - ham.y);
+        ctx.fillRect(hx, hy, 1, 1);
+      }
+
+      // ---------- game ----------
+      const els = {
+        nInput: document.getElementById("nInput"),
+        vInput: document.getElementById("vInput"),
+        seedInput: document.getElementById("seedInput"),
+        startBtn: document.getElementById("startBtn"),
+        resetBtn: document.getElementById("resetBtn"),
+        hud: document.getElementById("hud"),
+        status: document.getElementById("status"),
+        mini1: document.getElementById("mini1"),
+        mini2: document.getElementById("mini2"),
+        mini3: document.getElementById("mini3"),
+        bigGrid: document.getElementById("bigGrid"),
+        m1: document.getElementById("m1"),
+        m2: document.getElementById("m2"),
+        m3: document.getElementById("m3"),
+        overlay: document.getElementById("overlay"),
+        modalTitle: document.getElementById("modalTitle"),
+        modalText: document.getElementById("modalText"),
+        modalClose: document.getElementById("modalClose")
+      };
+
+      let running = false;
+      let gameOver = false;
+      let rng = null;
+      let N = 6;
+      let V = 1;
+      let princess = null;
+
+      let s1 = null;
+      let s2 = null;
+      let s3 = null;
+
+      const player = {
+        ham: { x: 0, y: 0 },
+        dug: null,
+        moves: 0
+      };
+
+      let ctxMini1, ctxMini2, ctxMini3, ctxBig;
+      let bigCells = null; // flat array of span cells (row-major: y from top (N) to bottom (-N))
+      let lastPlayerPos = null;
+
+      function samplePrincess(N, rng) {
+        const x = Math.floor(rng() * (2 * N + 1)) - N;
+        const y = Math.floor(rng() * (2 * N + 1)) - N;
+        return [x, y];
+      }
+
+      function resetState() {
+        gameOver = false;
+        player.ham = { x: 0, y: 0 };
+        player.moves = 0;
+        player.dug = makeGrid(2 * N + 1, false);
+        player.dug[idx(0, N)][idx(0, N)] = true;
+        s1 = new Scenario1({ N, V, rng, princess });
+        s2 = new Scenario2({ N, V, rng, princess });
+        s3 = new Scenario3({ N, V, rng, princess });
+        lastPlayerPos = { x: 0, y: 0 };
+      }
+
+      function showModal(title, text) {
+        els.modalTitle.textContent = title;
+        els.modalText.textContent = text;
+        els.overlay.classList.add("show");
+      }
+
+      els.modalClose.addEventListener("click", () => {
+        els.overlay.classList.remove("show");
+      });
+
+      function renderAll() {
+        els.hud.textContent = `N=${N} V=${V} | ходы игрока=${player.moves}`;
+        els.m1.textContent = s1?.found ? "нашёл" : `t=${s1?.time.toFixed(1) ?? "—"}`;
+        els.m2.textContent = s2?.found ? "нашёл" : `t=${s2?.time.toFixed(1) ?? "—"}`;
+        els.m3.textContent = s3?.found ? "нашёл" : `t=${s3?.time.toFixed(1) ?? "—"}`;
+
+        // mini maps: show everything (including princess)
+        drawMap(ctxMini1, N, s1.dug, s1.ham, princess, { showPrincess: true, colorHam: "#60a5fa" });
+        drawMap(ctxMini2, N, s2.dug, s2.ham, princess, { showPrincess: true, colorHam: "#a78bfa" });
+        drawMap(ctxMini3, N, s3.dug, s3.ham, princess, { showPrincess: true, colorHam: "#fb7185" });
+
+        // big map: emoji grid, hide princess
+        renderBigEmoji();
+      }
+
+      function bigIndexFromXY(x, y) {
+        // our DOM is rendered with y from N..-N (top to bottom), and x from -N..N (left to right)
+        const row = (N - y); // y=N => 0
+        const col = (x + N);
+        return row * (2 * N + 1) + col;
+      }
+
+      function setBigCell(x, y, emoji) {
+        if (!bigCells) return;
+        const i = bigIndexFromXY(x, y);
+        const el = bigCells[i];
+        if (el) el.textContent = emoji;
+      }
+
+      function buildBigEmojiGrid() {
+        const size = 2 * N + 1;
+
+        // Pick cell size to fit viewport width nicely (cap for readability)
+        const usable = Math.min(window.innerWidth, 900) - 24 /*wrap*/ - 20 /*padding*/;
+        const cell = Math.max(12, Math.min(26, Math.floor(usable / size) - 2));
+        const font = Math.max(11, Math.min(22, cell - 4));
+        els.bigGrid.style.setProperty("--cell", `${cell}px`);
+        els.bigGrid.style.setProperty("--cell-font", `${font}px`);
+
+        els.bigGrid.style.gridTemplateColumns = `repeat(${size}, var(--cell))`;
+        els.bigGrid.replaceChildren();
+        const frag = document.createDocumentFragment();
+        bigCells = new Array(size * size);
+
+        for (let y = N; y >= -N; y--) {
+          for (let x = -N; x <= N; x++) {
+            const span = document.createElement("span");
+            span.className = "cell";
+            span.textContent = "⬜";
+            bigCells[bigIndexFromXY(x, y)] = span;
+            frag.appendChild(span);
+          }
+        }
+        els.bigGrid.appendChild(frag);
+        // Initial paint
+        renderBigEmoji(true);
+      }
+
+      function renderBigEmoji(full = false) {
+        if (!bigCells) return;
+        const size = 2 * N + 1;
+        if (full) {
+          for (let y = -N; y <= N; y++) {
+            for (let x = -N; x <= N; x++) {
+              const isVisited = player.dug[idx(y, N)][idx(x, N)];
+              setBigCell(x, y, isVisited ? "🟫" : "⬜");
+            }
+          }
+        }
+
+        // update previous hamster cell (unless it's visited, then keep 🟫)
+        if (lastPlayerPos) {
+          const wasVisited = player.dug[idx(lastPlayerPos.y, N)][idx(lastPlayerPos.x, N)];
+          setBigCell(lastPlayerPos.x, lastPlayerPos.y, wasVisited ? "🟫" : "⬜");
+        }
+
+        // current hamster cell
+        setBigCell(player.ham.x, player.ham.y, gameOver && !running ? "🎉" : "🐹");
+        lastPlayerPos = { x: player.ham.x, y: player.ham.y };
+      }
+
+      function endGame(winner) {
+        gameOver = true;
+        running = false;
+        els.startBtn.disabled = false;
+        // leave a visible celebration marker on the player's position if player won
+        if (winner === "player") {
+          setBigCell(player.ham.x, player.ham.y, "🎉");
+        }
+        if (winner === "player") {
+          showModal("Вы победили!", `Вы нашли принцессу за ${player.moves} ходов.\nAI не успели.`);
+        } else {
+          const num = winner === "s1" ? 1 : winner === "s2" ? 2 : 3;
+          showModal("Поражение", `Вас выиграл хомяк номер ${num}.\nВаши ходы: ${player.moves}`);
+        }
+      }
+
+      function playerStep(dx, dy) {
+        if (!running || gameOver) return;
+        if (dx === 0 && dy === 0) return;
+
+        const nx = player.ham.x + dx;
+        const ny = player.ham.y + dy;
+        if (!inBounds(nx, ny, N)) return;
+
+        player.ham.x = nx;
+        player.ham.y = ny;
+        player.moves++;
+        player.dug[idx(ny, N)][idx(nx, N)] = true;
+        // paint visited cell and hamster
+        setBigCell(nx, ny, "🐹");
+
+        // player wins first if stepped onto princess
+        if (nx === princess[0] && ny === princess[1]) {
+          renderAll();
+          endGame("player");
+          return;
+        }
+
+        // then AI take their "turn" (one tick each)
+        const digMovesPerTick = V;
+        const walkMovesPerTick = 10 * V;
+        if (!s1.found) s1.step({ digMovesPerTick, walkMovesPerTick });
+        if (!s2.found) s2.step({ digMovesPerTick, walkMovesPerTick });
+        if (!s3.found) s3.step({ digMovesPerTick, walkMovesPerTick });
+
+        renderAll();
+
+        // first AI who found wins (priority 1->2->3)
+        if (s1.found) return endGame("s1");
+        if (s2.found) return endGame("s2");
+        if (s3.found) return endGame("s3");
+      }
+
+      // ---------- touch / drag control ----------
+      const drag = {
+        active: false,
+        lastX: 0,
+        lastY: 0
+      };
+
+      function dirFromDelta(dx, dy) {
+        // choose 8-dir by angle; require some movement
+        const adx = Math.abs(dx);
+        const ady = Math.abs(dy);
+        if (adx < 1e-6 && ady < 1e-6) return { dx: 0, dy: 0 };
+        // Normalize by dominant axis; thresholds chosen for nice diagonals
+        const isDiag = adx / (ady + 1e-6) < 1.5 && ady / (adx + 1e-6) < 1.5;
+        const sx = dx > 0 ? 1 : -1;
+        const sy = dy > 0 ? -1 : 1; // screen Y down => game Y up
+        if (isDiag) return { dx: sx, dy: sy };
+        if (adx > ady) return { dx: sx, dy: 0 };
+        return { dx: 0, dy: sy };
+      }
+
+      function attachDrag(canvas) {
+        const threshold = 18; // px
+        canvas.addEventListener("pointerdown", (e) => {
+          if (!running || gameOver) return;
+          drag.active = true;
+          drag.lastX = e.clientX;
+          drag.lastY = e.clientY;
+          canvas.setPointerCapture(e.pointerId);
+        });
+        canvas.addEventListener("pointermove", (e) => {
+          if (!drag.active || !running || gameOver) return;
+          const dx = e.clientX - drag.lastX;
+          const dy = e.clientY - drag.lastY;
+          const dist = Math.hypot(dx, dy);
+          if (dist < threshold) return;
+          const d = dirFromDelta(dx, dy);
+          if (d.dx === 0 && d.dy === 0) return;
+          playerStep(d.dx, d.dy);
+          // reset anchor so можно вести палец не отпуская
+          drag.lastX = e.clientX;
+          drag.lastY = e.clientY;
+        });
+        const end = () => {
+          drag.active = false;
+        };
+        canvas.addEventListener("pointerup", end);
+        canvas.addEventListener("pointercancel", end);
+      }
+
+      // ---------- lifecycle ----------
+      function start() {
+        N = clampInt(els.nInput.value, 2, 40);
+        V = clampInt(els.vInput.value, 1, 50);
+        const seedStr = String(els.seedInput.value || "").trim();
+        const seed = seedStr ? hashStringToSeed(seedStr) : (Date.now() >>> 0);
+        rng = mulberry32(seed);
+
+        princess = samplePrincess(N, rng);
+
+        // mini-canvas contexts at logical pixel size = (2N+1)
+        const pixels = 2 * N + 1;
+        ctxMini1 = setupCanvas(els.mini1, pixels);
+        ctxMini2 = setupCanvas(els.mini2, pixels);
+        ctxMini3 = setupCanvas(els.mini3, pixels);
+
+        resetState();
+        buildBigEmojiGrid();
+        running = true;
+        els.startBtn.disabled = true;
+
+        els.status.textContent =
+          "Игра началась. Свайпайте по полю.\nПравило хода: вы делаете 1 шаг → затем все 3 AI делают свой тик.\nЕсли вы дошли до 👸 раньше — победа; иначе показываем, какой сценарий победил.";
+
+        renderAll();
+      }
+
+      function resetAll() {
+        running = false;
+        gameOver = false;
+        els.startBtn.disabled = false;
+        els.overlay.classList.remove("show");
+        els.status.textContent =
+          "Управление: проведите пальцем по большому полю. Если ведёте вверх — 🐹 идёт вверх, и т.д. (диагонали поддерживаются).\nКаждый ваш шаг = 1 ход. После вашего хода AI-хомяки делают свои шаги по сценарию.";
+        els.hud.textContent = "—";
+        const pixels = 2 * clampInt(els.nInput.value, 2, 40) + 1;
+        ctxMini1 = setupCanvas(els.mini1, pixels);
+        ctxMini2 = setupCanvas(els.mini2, pixels);
+        ctxMini3 = setupCanvas(els.mini3, pixels);
+        // Clear
+        ctxMini1.clearRect(0, 0, pixels, pixels);
+        ctxMini2.clearRect(0, 0, pixels, pixels);
+        ctxMini3.clearRect(0, 0, pixels, pixels);
+        els.bigGrid.replaceChildren();
+        bigCells = null;
+        lastPlayerPos = null;
+        els.m1.textContent = "—";
+        els.m2.textContent = "—";
+        els.m3.textContent = "—";
+      }
+
+      els.startBtn.addEventListener("click", start);
+      els.resetBtn.addEventListener("click", resetAll);
+
+      attachDrag(els.bigGrid);
+      resetAll();
+    </script>
+  </body>
+</html>
+
