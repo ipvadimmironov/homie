@@ -278,11 +278,11 @@
         border: 1px solid rgba(255, 255, 255, 0.18);
         background: rgba(17, 24, 39, 0.72);
         color: var(--text);
-        width: 44px;
-        height: 44px;
+        width: 88px;
+        height: 88px;
         display: grid;
         place-items: center;
-        font-size: 18px;
+        font-size: 32px;
         line-height: 1;
         cursor: pointer;
         user-select: none;
@@ -905,8 +905,10 @@
       let bigCells = null; // flat array of span cells (row-major: y from top (N) to bottom (-N))
       let lastPlayerPos = null;
 
-      let soundEnabled = true;
+      let soundEnabled = false;
       let triedAutoPlay = false;
+      let audioStartApplied = false;
+      const AUDIO_START_SECONDS = 10;
 
       // Reduce interference from in-app browser gestures (Telegram / iOS back/close).
       // Can't guarantee 100%, but this significantly helps.
@@ -1198,6 +1200,8 @@
         canvas.addEventListener("pointerdown", (e) => {
           if (!running || gameOver) return;
           if (els.overlay.classList.contains("show")) return;
+          // Don't start swipe logic when clicking UI buttons (e.g., sound)
+          if (e.target && e.target.closest && e.target.closest("#soundBtn")) return;
           tryStartMusic();
           drag.active = true;
           drag.lastX = e.clientX;
@@ -1301,6 +1305,17 @@
         triedAutoPlay = true;
         if (!soundEnabled) return;
         try {
+          // Start track from a fixed offset (best-effort; may fail before metadata is loaded)
+          if (!audioStartApplied) {
+            try {
+              if (Number.isFinite(els.bgAudio.duration) && els.bgAudio.duration > AUDIO_START_SECONDS) {
+                els.bgAudio.currentTime = AUDIO_START_SECONDS;
+                audioStartApplied = true;
+              } else if (!Number.isFinite(els.bgAudio.duration)) {
+                // duration not known yet; we'll retry on loadedmetadata
+              }
+            } catch (_) {}
+          }
           await els.bgAudio.play();
         } catch (_) {
           // Autoplay blocked or file missing; ignore silently.
@@ -1322,7 +1337,26 @@
           } catch (_) {}
           return;
         }
+        // When enabling, restart from the desired offset
+        audioStartApplied = false;
         tryStartMusic();
+      });
+
+      // Make sure button is clickable on desktop (avoid swipe handler interference)
+      els.soundBtn.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+      });
+
+      // If metadata becomes available later, apply start offset once
+      els.bgAudio.addEventListener("loadedmetadata", () => {
+        if (!soundEnabled) return;
+        if (audioStartApplied) return;
+        try {
+          if (Number.isFinite(els.bgAudio.duration) && els.bgAudio.duration > AUDIO_START_SECONDS) {
+            els.bgAudio.currentTime = AUDIO_START_SECONDS;
+            audioStartApplied = true;
+          }
+        } catch (_) {}
       });
 
       updateSoundIcon();
