@@ -19,13 +19,19 @@
         box-sizing: border-box;
         touch-action: none;
       }
+      html,
+      body {
+        overscroll-behavior: none;
+        overscroll-behavior-x: none;
+        overscroll-behavior-y: none;
+        overflow: hidden;
+      }
       body {
         margin: 0;
         background: radial-gradient(900px 600px at 30% 0%, #132036 0%, var(--bg) 60%);
         color: var(--text);
         font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Segoe UI Emoji",
           "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-        overscroll-behavior: none;
         height: 100vh;
       }
       .wrap {
@@ -234,6 +240,25 @@
         font-variant-numeric: tabular-nums;
         margin-left: 10px;
       }
+
+      .sound-btn {
+        position: fixed;
+        right: 10px;
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        z-index: 10000;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(17, 24, 39, 0.72);
+        color: var(--text);
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+        user-select: none;
+      }
     </style>
   </head>
   <body>
@@ -266,6 +291,9 @@
     </div>
 
     <div class="balloon-layer" id="balloonLayer"></div>
+
+    <audio id="bgAudio" src="bg.mp3" preload="auto" loop></audio>
+    <button id="soundBtn" class="sound-btn" aria-label="Звук">🔇</button>
 
     <div class="overlay" id="overlay">
       <div class="modal">
@@ -807,6 +835,8 @@
         trophy2: document.getElementById("trophy2"),
         trophy3: document.getElementById("trophy3"),
         balloonLayer: document.getElementById("balloonLayer"),
+        bgAudio: document.getElementById("bgAudio"),
+        soundBtn: document.getElementById("soundBtn"),
         overlay: document.getElementById("overlay"),
         modalTitle: document.getElementById("modalTitle"),
         modalText: document.getElementById("modalText"),
@@ -838,6 +868,17 @@
       let ctxMini1, ctxMini2, ctxMini3, ctxBig;
       let bigCells = null; // flat array of span cells (row-major: y from top (N) to bottom (-N))
       let lastPlayerPos = null;
+
+      let soundEnabled = false;
+      let triedAutoPlay = false;
+
+      // Reduce interference from in-app browser gestures (Telegram / iOS back/close).
+      // Can't guarantee 100%, but this significantly helps.
+      function lockGestures(enable) {
+        const on = !!enable;
+        document.documentElement.style.touchAction = on ? "none" : "";
+        document.body.style.touchAction = on ? "none" : "";
+      }
 
       function samplePrincess(N, rng) {
         const x = Math.floor(rng() * (2 * N + 1)) - N;
@@ -1078,6 +1119,7 @@
         canvas.addEventListener("pointerdown", (e) => {
           if (!running || gameOver) return;
           if (els.overlay.classList.contains("show")) return;
+          tryStartMusic();
           drag.active = true;
           drag.lastX = e.clientX;
           drag.lastY = e.clientY;
@@ -1150,6 +1192,59 @@
         if (!running && !gameOver) return;
         if (bigCells) buildBigEmojiGrid();
       });
+
+      // Prevent page scroll / pull-to-close gestures while playing.
+      // Note: must be passive:false to allow preventDefault().
+      document.addEventListener(
+        "touchmove",
+        (e) => {
+          if (!running || gameOver) return;
+          if (els.overlay.classList.contains("show")) return;
+          e.preventDefault();
+        },
+        { passive: false }
+      );
+
+      // Telegram WebApp: disable vertical swipe-to-close when available.
+      try {
+        const tg = window.Telegram?.WebApp;
+        if (tg?.disableVerticalSwipes) tg.disableVerticalSwipes();
+        if (tg?.expand) tg.expand();
+      } catch (_) {}
+
+      async function tryStartMusic() {
+        if (triedAutoPlay) return;
+        triedAutoPlay = true;
+        if (!soundEnabled) return;
+        try {
+          await els.bgAudio.play();
+        } catch (_) {
+          // Autoplay blocked or file missing; ignore silently.
+        }
+      }
+
+      function updateSoundIcon() {
+        els.soundBtn.textContent = soundEnabled ? "🔊" : "🔇";
+      }
+
+      els.soundBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        soundEnabled = !soundEnabled;
+        updateSoundIcon();
+        triedAutoPlay = false; // allow retry after explicit gesture
+        if (!soundEnabled) {
+          try {
+            els.bgAudio.pause();
+          } catch (_) {}
+          return;
+        }
+        tryStartMusic();
+      });
+
+      updateSoundIcon();
+
+      // Enable gesture lock by default (this page is a game; no scrolling UI).
+      lockGestures(true);
     </script>
   </body>
 </html>
