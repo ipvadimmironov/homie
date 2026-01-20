@@ -179,6 +179,14 @@
         padding: 14px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
       }
+      .modal .big-emoji {
+        width: 100%;
+        text-align: center;
+        font-size: min(42vh, 220px);
+        line-height: 1;
+        margin: 6px 0 10px;
+        filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.55));
+      }
       .modal h2 {
         margin: 0 0 8px;
         font-size: 16px;
@@ -266,6 +274,7 @@
     <div class="overlay" id="overlay">
       <div class="modal">
         <h2 id="modalTitle">—</h2>
+        <div class="big-emoji" id="modalEmoji" aria-hidden="true">💰</div>
         <p id="modalText">—</p>
         <div class="row">
           <button id="modalClose" class="primary">Ок</button>
@@ -807,6 +816,7 @@
         soundBtn: document.getElementById("soundBtn"),
         overlay: document.getElementById("overlay"),
         modalTitle: document.getElementById("modalTitle"),
+        modalEmoji: document.getElementById("modalEmoji"),
         modalText: document.getElementById("modalText"),
         modalClose: document.getElementById("modalClose")
       };
@@ -819,6 +829,7 @@
       let N = N_DEFAULT;
       let V = V_DEFAULT;
       let princess = null;
+      let treasureEmoji = "💰";
 
       let s1 = null;
       let s2 = null;
@@ -874,9 +885,10 @@
         els.win3.classList.remove("show");
       }
 
-      function showModal(title, text) {
+      function showModal(title, text, emoji) {
         els.modalTitle.textContent = title;
         els.modalText.textContent = text;
+        if (emoji) els.modalEmoji.textContent = emoji;
         els.overlay.classList.add("show");
       }
 
@@ -1006,9 +1018,9 @@
           setBigCell(player.ham.x, player.ham.y, "🎉");
         }
         if (winner === "player") {
-          showModal("Вы победили!", `Вы нашли принцессу за ${player.moves} ходов.\nAI не успели.`);
+          showModal("Вы победили!", `Вы нашли сокровище за ${player.moves} ходов.`, treasureEmoji);
         } else {
-          showModal("Поражение", `Два хомяка нашли принцессу раньше вас.\nВаши ходы: ${player.moves}`);
+          showModal("Поражение", `Два хомяка нашли сокровище раньше вас.\nВаши ходы: ${player.moves}`, treasureEmoji);
         }
       }
 
@@ -1120,6 +1132,7 @@
         rng = mulberry32(seed);
 
         princess = samplePrincess(N, rng);
+        treasureEmoji = pick(rng, ["💰", "🍩", "🧶", "🦷"]);
 
         // mini-canvas contexts at logical pixel size = (2N+1)
         const pixels = 2 * N + 1;
