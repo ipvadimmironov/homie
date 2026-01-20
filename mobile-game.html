@@ -271,8 +271,8 @@
 
       .sound-btn {
         position: fixed;
-        right: 10px;
-        bottom: calc(10px + env(safe-area-inset-bottom));
+        left: calc(16px + env(safe-area-inset-left));
+        bottom: calc(16px + env(safe-area-inset-bottom));
         z-index: 10000;
         border-radius: 999px;
         border: 1px solid rgba(255, 255, 255, 0.18);
@@ -331,9 +331,6 @@
         <p id="modalText">—</p>
         <br id="modalWinBreak" />
         <div class="big-emoji" id="modalEmoji" aria-hidden="true">💰</div>
-        <div class="row">
-          <button id="modalClose" class="primary">Ок</button>
-        </div>
       </div>
     </div>
 
@@ -874,8 +871,7 @@
         modalTitle: document.getElementById("modalTitle"),
         modalWinBreak: document.getElementById("modalWinBreak"),
         modalEmoji: document.getElementById("modalEmoji"),
-        modalText: document.getElementById("modalText"),
-        modalClose: document.getElementById("modalClose")
+        modalText: document.getElementById("modalText")
       };
 
       let running = false;
@@ -909,6 +905,7 @@
       let triedAutoPlay = false;
       let audioStartApplied = false;
       const AUDIO_START_SECONDS = 10;
+      let modalCanCloseAt = 0;
 
       // Reduce interference from in-app browser gestures (Telegram / iOS back/close).
       // Can't guarantee 100%, but this significantly helps.
@@ -960,6 +957,7 @@
           els.modalEmoji.style.display = "none";
           els.modalEmoji.classList.remove("win-pop");
         }
+        modalCanCloseAt = performance.now() + 1000;
         els.overlay.classList.add("show");
       }
 
@@ -994,7 +992,7 @@
         setTimeout(clearConfetti, 1900);
       }
 
-      // modalClose handler is set near the end to restart the game
+      // modal closes by tapping anywhere after a short delay
 
       function renderAll() {
         els.hud.textContent = `Ходы: ${player.moves} • AI: ${aiWinCount}/2`;
@@ -1267,8 +1265,18 @@
         start();
       }
 
-      // Tap "Ок" => новая игра
-      els.modalClose.addEventListener("click", restart);
+      // Close modal by tapping anywhere, but only after 1s (to avoid accidental dismiss).
+      document.addEventListener(
+        "pointerdown",
+        (e) => {
+          if (!els.overlay.classList.contains("show")) return;
+          // don't close from sound button tap
+          if (e.target && e.target.closest && e.target.closest("#soundBtn")) return;
+          if (performance.now() < modalCanCloseAt) return;
+          restart();
+        },
+        true
+      );
 
       // Auto-start on open
       window.addEventListener("load", () => {
