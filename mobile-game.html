@@ -85,6 +85,7 @@
         display: grid;
         gap: 0px;
         width: 100%;
+        position: relative;
       }
       canvas {
         display: block;
@@ -95,6 +96,65 @@
         border: 1px solid var(--border);
         background: rgba(0, 0, 0, 0.16);
         image-rendering: pixelated;
+      }
+
+      .winner-overlay {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(34, 197, 94, 0.92);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        overflow: hidden;
+      }
+      .winner-overlay.show {
+        display: grid;
+        place-items: center;
+      }
+      .winner-overlay .trophy {
+        text-align: center;
+        font-size: clamp(44px, 14vw, 96px);
+        line-height: 1;
+        filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+      }
+
+      .balloon-layer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 8px;
+        pointer-events: none;
+        z-index: 9999;
+      }
+      .balloon {
+        position: absolute;
+        left: 100%;
+        top: 0;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(17, 24, 39, 0.92);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+        animation: fly 1800ms linear forwards;
+      }
+      @keyframes fly {
+        from {
+          transform: translateX(0);
+          opacity: 0.95;
+        }
+        80% {
+          opacity: 0.95;
+        }
+        to {
+          transform: translateX(-140vw);
+          opacity: 0;
+        }
       }
 
       .emoji-grid {
@@ -187,12 +247,15 @@
         <div class="mini-row">
           <div class="mini">
             <canvas id="mini1"></canvas>
+            <div class="winner-overlay" id="win1"><div class="trophy" id="trophy1">🏆</div></div>
           </div>
           <div class="mini">
             <canvas id="mini2"></canvas>
+            <div class="winner-overlay" id="win2"><div class="trophy" id="trophy2">🏆</div></div>
           </div>
           <div class="mini">
             <canvas id="mini3"></canvas>
+            <div class="winner-overlay" id="win3"><div class="trophy" id="trophy3">🏆</div></div>
           </div>
         </div>
 
@@ -201,6 +264,8 @@
         </div>
       </div>
     </div>
+
+    <div class="balloon-layer" id="balloonLayer"></div>
 
     <div class="overlay" id="overlay">
       <div class="modal">
@@ -735,6 +800,13 @@
         mini2: document.getElementById("mini2"),
         mini3: document.getElementById("mini3"),
         bigGrid: document.getElementById("bigGrid"),
+        win1: document.getElementById("win1"),
+        win2: document.getElementById("win2"),
+        win3: document.getElementById("win3"),
+        trophy1: document.getElementById("trophy1"),
+        trophy2: document.getElementById("trophy2"),
+        trophy3: document.getElementById("trophy3"),
+        balloonLayer: document.getElementById("balloonLayer"),
         overlay: document.getElementById("overlay"),
         modalTitle: document.getElementById("modalTitle"),
         modalText: document.getElementById("modalText"),
@@ -753,6 +825,9 @@
       let s1 = null;
       let s2 = null;
       let s3 = null;
+
+      const aiWins = { s1: false, s2: false, s3: false };
+      let aiWinCount = 0;
 
       const player = {
         ham: { x: 0, y: 0 },
@@ -780,6 +855,14 @@
         s2 = new Scenario2({ N, V, rng, princess });
         s3 = new Scenario3({ N, V, rng, princess });
         lastPlayerPos = { x: 0, y: 0 };
+
+        aiWins.s1 = false;
+        aiWins.s2 = false;
+        aiWins.s3 = false;
+        aiWinCount = 0;
+        els.win1.classList.remove("show");
+        els.win2.classList.remove("show");
+        els.win3.classList.remove("show");
       }
 
       function showModal(title, text) {
@@ -791,7 +874,7 @@
       // modalClose handler is set near the end to restart the game
 
       function renderAll() {
-        els.hud.textContent = `Ходы: ${player.moves}`;
+        els.hud.textContent = `Ходы: ${player.moves} • AI: ${aiWinCount}/2`;
 
         // mini maps: show everything (including princess)
         // Do NOT show princess on mini-maps (no spoilers)
@@ -801,6 +884,35 @@
 
         // big map: emoji grid, hide princess
         renderBigEmoji();
+      }
+
+      function showBalloon(text) {
+        const b = document.createElement("div");
+        b.className = "balloon";
+        b.textContent = text;
+        els.balloonLayer.appendChild(b);
+        setTimeout(() => b.remove(), 2000);
+      }
+
+      function setWinnerOverlay(num) {
+        const trophyEl = num === 1 ? els.trophy1 : num === 2 ? els.trophy2 : els.trophy3;
+        const overlayEl = num === 1 ? els.win1 : num === 2 ? els.win2 : els.win3;
+        trophyEl.textContent = "🏆";
+        // Make the trophy "big" to visually cover the mini-map
+        const w = overlayEl.clientWidth || 96;
+        const h = overlayEl.clientHeight || 96;
+        const s = Math.max(44, Math.floor(Math.min(w, h) * 0.82));
+        trophyEl.style.fontSize = `${s}px`;
+        overlayEl.classList.add("show");
+      }
+
+      function registerAiWin(which) {
+        if (aiWins[which]) return;
+        aiWins[which] = true;
+        aiWinCount++;
+        const num = which === "s1" ? 1 : which === "s2" ? 2 : 3;
+        setWinnerOverlay(num);
+        showBalloon(`Хомяк ${num} выиграл`);
       }
 
       function bigIndexFromXY(x, y) {
@@ -892,8 +1004,7 @@
         if (winner === "player") {
           showModal("Вы победили!", `Вы нашли принцессу за ${player.moves} ходов.\nAI не успели.`);
         } else {
-          const num = winner === "s1" ? 1 : winner === "s2" ? 2 : 3;
-          showModal("Поражение", `Вас выиграл хомяк номер ${num}.\nВаши ходы: ${player.moves}`);
+          showModal("Поражение", `Два хомяка нашли принцессу раньше вас.\nВаши ходы: ${player.moves}`);
         }
       }
 
@@ -932,10 +1043,13 @@
 
         renderAll();
 
-        // first AI who found wins (priority 1->2->3)
-        if (s1.found) return endGame("s1");
-        if (s2.found) return endGame("s2");
-        if (s3.found) return endGame("s3");
+        // Register AI wins; their mini-map becomes fully green + 🏆 (no spoiler trails)
+        if (s1.found) registerAiWin("s1");
+        if (s2.found) registerAiWin("s2");
+        if (s3.found) registerAiWin("s3");
+
+        // Player окончательно проигрывает только когда 2 из 3 нашли
+        if (aiWinCount >= 2) return endGame("ai");
       }
 
       // ---------- touch / drag control ----------
