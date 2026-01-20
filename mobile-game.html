@@ -328,8 +328,9 @@
     <div class="overlay" id="overlay">
       <div class="modal">
         <h2 id="modalTitle">—</h2>
-        <div class="big-emoji" id="modalEmoji" aria-hidden="true">💰</div>
         <p id="modalText">—</p>
+        <br id="modalWinBreak" />
+        <div class="big-emoji" id="modalEmoji" aria-hidden="true">💰</div>
         <div class="row">
           <button id="modalClose" class="primary">Ок</button>
         </div>
@@ -871,6 +872,7 @@
         confettiLayer: document.getElementById("confettiLayer"),
         overlay: document.getElementById("overlay"),
         modalTitle: document.getElementById("modalTitle"),
+        modalWinBreak: document.getElementById("modalWinBreak"),
         modalEmoji: document.getElementById("modalEmoji"),
         modalText: document.getElementById("modalText"),
         modalClose: document.getElementById("modalClose")
@@ -944,6 +946,7 @@
         els.modalTitle.textContent = title;
         els.modalText.textContent = text;
         if (emoji) {
+          els.modalWinBreak.style.display = "";
           els.modalEmoji.style.display = "";
           els.modalEmoji.textContent = emoji;
           // restart animation
@@ -951,6 +954,7 @@
           void els.modalEmoji.offsetWidth;
           els.modalEmoji.classList.add("win-pop");
         } else {
+          els.modalWinBreak.style.display = "none";
           els.modalEmoji.style.display = "none";
           els.modalEmoji.classList.remove("win-pop");
         }
