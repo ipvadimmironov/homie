@@ -68,29 +68,28 @@
         gap: 10px;
         overflow: hidden;
       }
+      .big {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+      }
       .mini-row {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+        align-items: stretch;
       }
       .mini {
         display: grid;
-        gap: 8px;
-        justify-items: center;
-      }
-      .mini .head {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 10px;
-        color: var(--muted);
-        font-size: 12px;
-        font-variant-numeric: tabular-nums;
+        gap: 0px;
+        width: 100%;
       }
       canvas {
+        display: block;
         width: 100%;
-        max-width: 96px;
-        height: auto;
+        height: 100%;
         aspect-ratio: 1 / 1;
         border-radius: 14px;
         border: 1px solid var(--border);
@@ -104,9 +103,11 @@
         display: grid;
         gap: 1px;
         width: 100%;
+        justify-content: center;
+        align-content: start;
         border-radius: 14px;
-        border: 1px solid var(--border);
-        background: rgba(0, 0, 0, 0.16);
+        border: none;
+        background: transparent;
         padding: 6px;
         flex: 1;
         min-height: 0;
@@ -185,24 +186,12 @@
       <div class="panel">
         <div class="mini-row">
           <div class="mini">
-            <div class="head">
-              <div>Сценарий 1</div>
-              <div id="m1">—</div>
-            </div>
             <canvas id="mini1"></canvas>
           </div>
           <div class="mini">
-            <div class="head">
-              <div>Сценарий 2</div>
-              <div id="m2">—</div>
-            </div>
             <canvas id="mini2"></canvas>
           </div>
           <div class="mini">
-            <div class="head">
-              <div>Сценарий 3</div>
-              <div id="m3">—</div>
-            </div>
             <canvas id="mini3"></canvas>
           </div>
         </div>
@@ -687,12 +676,12 @@
 
       // ---------- rendering ----------
       function setupCanvas(canvas, pixels) {
-        // pixels = size
-        const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-        canvas.width = pixels * dpr;
-        canvas.height = pixels * dpr;
+        // pixels = logical grid size (2N+1). We keep the backing store exactly pixels×pixels,
+        // and scale via CSS (image-rendering: pixelated) for crisp "pixel" look.
+        canvas.width = pixels;
+        canvas.height = pixels;
         const ctx = canvas.getContext("2d");
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.imageSmoothingEnabled = false;
         return ctx;
       }
@@ -703,9 +692,15 @@
         const h = size;
         ctx.clearRect(0, 0, w, h);
 
-        // background
-        ctx.fillStyle = "#111827";
+        // Base grid (so mini-maps don't look "empty")
+        ctx.fillStyle = "#0b1220";
         ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = "#111c2f";
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            ctx.fillRect(x, y, 1, 1);
+          }
+        }
 
         // dug
         ctx.fillStyle = "#22c55e"; // green visited
@@ -740,9 +735,6 @@
         mini2: document.getElementById("mini2"),
         mini3: document.getElementById("mini3"),
         bigGrid: document.getElementById("bigGrid"),
-        m1: document.getElementById("m1"),
-        m2: document.getElementById("m2"),
-        m3: document.getElementById("m3"),
         overlay: document.getElementById("overlay"),
         modalTitle: document.getElementById("modalTitle"),
         modalText: document.getElementById("modalText"),
@@ -752,7 +744,7 @@
       let running = false;
       let gameOver = false;
       let rng = null;
-      const N_DEFAULT = 6;
+      const N_DEFAULT = 4;
       const V_DEFAULT = 1;
       let N = N_DEFAULT;
       let V = V_DEFAULT;
@@ -800,14 +792,12 @@
 
       function renderAll() {
         els.hud.textContent = `Ходы: ${player.moves}`;
-        els.m1.textContent = s1?.found ? "нашёл" : `t=${s1?.time.toFixed(1) ?? "—"}`;
-        els.m2.textContent = s2?.found ? "нашёл" : `t=${s2?.time.toFixed(1) ?? "—"}`;
-        els.m3.textContent = s3?.found ? "нашёл" : `t=${s3?.time.toFixed(1) ?? "—"}`;
 
         // mini maps: show everything (including princess)
-        drawMap(ctxMini1, N, s1.dug, s1.ham, princess, { showPrincess: true, colorHam: "#60a5fa" });
-        drawMap(ctxMini2, N, s2.dug, s2.ham, princess, { showPrincess: true, colorHam: "#a78bfa" });
-        drawMap(ctxMini3, N, s3.dug, s3.ham, princess, { showPrincess: true, colorHam: "#fb7185" });
+        // Do NOT show princess on mini-maps (no spoilers)
+        drawMap(ctxMini1, N, s1.dug, s1.ham, princess, { showPrincess: false, colorHam: "#60a5fa" });
+        drawMap(ctxMini2, N, s2.dug, s2.ham, princess, { showPrincess: false, colorHam: "#a78bfa" });
+        drawMap(ctxMini3, N, s3.dug, s3.ham, princess, { showPrincess: false, colorHam: "#fb7185" });
 
         // big map: emoji grid, hide princess
         renderBigEmoji();
@@ -840,8 +830,9 @@
           const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
           const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
           const gap = parseFloat(cs.gap) || 0;
-          const w = els.bigGrid.clientWidth;
-          const h = els.bigGrid.clientHeight;
+          const parent = els.bigGrid.parentElement; // .big
+          const w = parent ? parent.clientWidth : els.bigGrid.clientWidth;
+          const h = parent ? parent.clientHeight : els.bigGrid.clientHeight;
           const maxCellW = Math.floor((w - padX - gap * (size - 1)) / size);
           const maxCellH = Math.floor((h - padY - gap * (size - 1)) / size);
           const cell = Math.max(10, Math.min(26, Math.min(maxCellW, maxCellH)));
@@ -972,13 +963,18 @@
         const threshold = 18; // px
         canvas.addEventListener("pointerdown", (e) => {
           if (!running || gameOver) return;
+          if (els.overlay.classList.contains("show")) return;
           drag.active = true;
           drag.lastX = e.clientX;
           drag.lastY = e.clientY;
-          canvas.setPointerCapture(e.pointerId);
+          // capture on element where we started to keep getting move events
+          try {
+            canvas.setPointerCapture?.(e.pointerId);
+          } catch (_) {}
         });
         canvas.addEventListener("pointermove", (e) => {
           if (!drag.active || !running || gameOver) return;
+          if (els.overlay.classList.contains("show")) return;
           const dx = e.clientX - drag.lastX;
           const dy = e.clientY - drag.lastY;
           const dist = Math.hypot(dx, dy);
@@ -1019,7 +1015,8 @@
         renderAll();
       }
 
-      attachDrag(els.bigGrid);
+      // Gesture can start anywhere on screen
+      attachDrag(document.documentElement);
 
       function restart() {
         els.overlay.classList.remove("show");
